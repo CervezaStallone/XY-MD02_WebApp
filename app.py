@@ -2,7 +2,7 @@ import minimalmodbus
 import time
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from dash import Dash, html
+from dash import Dash, html, dcc, callback_context, no_update
 from dash.dependencies import Input, Output, State
 from datetime import datetime, timedelta
 import threading
@@ -359,9 +359,8 @@ app.layout = create_layout()
      Output('label-database', 'children'),
      Output('tooltip-content', 'children'),
      Output('time-range-dropdown', 'options'),
-     Output('label-historical-replay', 'children'),
-     Output('label-select-range', 'children'),
-     Output('label-time-slider', 'children')],
+     Output('label-psychrometric-chart', 'children'),
+     Output('label-time-position', 'children')],
     [Input('language-selector', 'value')]
 )
 def update_language(lang):
@@ -417,9 +416,8 @@ def update_language(lang):
         t['database'],
         tooltip_content,
         dropdown_options,
-        f"📜 {t['historical_replay']}",
-        t['select_date_range'],
-        t['time_slider']
+        f"📐 {t['psychrometric_chart']}",
+        t['time_position']
     )
 
 @app.callback(
@@ -701,6 +699,112 @@ def update_psychrometric_chart(n, lang):
         print(f"Fout bij updaten psychrometric chart: {e}")
         return create_psychrometric_chart(None, None, lang)
 
+# Callback voor modal open/close
+@app.callback(
+    Output('range-modal', 'style'),
+    [Input('open-range-modal-btn', 'n_clicks'),
+     Input('close-range-modal-btn', 'n_clicks'),
+     Input('apply-custom-range-btn', 'n_clicks')],
+    [State('range-modal', 'style')],
+    prevent_initial_call=True
+)
+def toggle_modal(open_clicks, close_clicks, apply_clicks, current_style):
+    """Toggle modal visibility"""
+    ctx = callback_context
+    if not ctx.triggered:
+        return current_style
+    
+    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    
+    if button_id == 'open-range-modal-btn':
+        return {
+            'display': 'block',
+            'position': 'fixed',
+            'zIndex': '1000',
+            'left': '0',
+            'top': '0',
+            'width': '100%',
+            'height': '100%',
+            'background': 'rgba(0,0,0,0.5)',
+            'overflow': 'auto'
+        }
+    else:  # close of apply
+        return {'display': 'none'}
+
+# Callback voor preset buttons en custom range - sluit ook modal
+@app.callback(
+    [Output('selected-range-value', 'data'),
+     Output('range-modal', 'style', allow_duplicate=True)],
+    [Input('preset-5min', 'n_clicks'),
+     Input('preset-10min', 'n_clicks'),
+     Input('preset-30min', 'n_clicks'),
+     Input('preset-1hour', 'n_clicks'),
+     Input('preset-2hours', 'n_clicks'),
+     Input('preset-6hours', 'n_clicks'),
+     Input('preset-12hours', 'n_clicks'),
+     Input('preset-24hours', 'n_clicks'),
+     Input('preset-2days', 'n_clicks'),
+     Input('preset-week', 'n_clicks'),
+     Input('preset-month', 'n_clicks'),
+     Input('apply-custom-range-btn', 'n_clicks')],
+    [State('custom-start-date', 'date'),
+     State('custom-start-hour', 'value'),
+     State('custom-start-minute', 'value'),
+     State('custom-end-date', 'date'),
+     State('custom-end-hour', 'value'),
+     State('custom-end-minute', 'value')],
+    prevent_initial_call=True
+)
+def handle_range_selection(btn5, btn10, btn30, btn1h, btn2h, btn6h, btn12h, btn24h, btn2d, btnw, btnm, btncustom,
+                           start_date, start_hour, start_minute, end_date, end_hour, end_minute):
+    """Handle preset button clicks en custom range"""
+    ctx = callback_context
+    if not ctx.triggered:
+        return no_update, no_update
+    
+    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    
+    # Modal style om te sluiten
+    modal_closed = {'display': 'none'}
+    
+    # Preset button mapping
+    preset_map = {
+        'preset-5min': 5,
+        'preset-10min': 10,
+        'preset-30min': 30,
+        'preset-1hour': 60,
+        'preset-2hours': 120,
+        'preset-6hours': 360,
+        'preset-12hours': 720,
+        'preset-24hours': 1440,
+        'preset-2days': 2880,
+        'preset-week': 10080,
+        'preset-month': 43200
+    }
+    
+    if button_id in preset_map:
+        return {'type': 'preset', 'minutes': preset_map[button_id]}, modal_closed
+    
+    elif button_id == 'apply-custom-range-btn':
+        if start_date and end_date:
+            # Valideer tijden
+            start_hour = start_hour if start_hour is not None else 0
+            start_minute = start_minute if start_minute is not None else 0
+            end_hour = end_hour if end_hour is not None else 23
+            end_minute = end_minute if end_minute is not None else 59
+            
+            return {
+                'type': 'custom',
+                'start_date': start_date,
+                'start_hour': start_hour,
+                'start_minute': start_minute,
+                'end_date': end_date,
+                'end_hour': end_hour,
+                'end_minute': end_minute
+            }, modal_closed
+    
+    return no_update, no_update
+
 # Callback voor ophalen historische data bij range selectie
 @app.callback(
     [Output('historical-data-store', 'data'),
@@ -709,25 +813,45 @@ def update_psychrometric_chart(n, lang):
      Output('historical-time-slider', 'value'),
      Output('historical-time-slider', 'marks'),
      Output('slider-container', 'style')],
-    [Input('historical-date-range', 'start_date'),
-     Input('historical-date-range', 'end_date')],
+    [Input('selected-range-value', 'data')],
     [State('selected-language', 'data')]
 )
-def load_historical_data(start_date, end_date, lang):
-    """Laad historische data voor geselecteerde range"""
+def load_historical_data(range_value, lang):
+    """Laad historische data voor geselecteerde periode (preset of custom)"""
     if lang is None:
         lang = 'nl'
     
     t = TRANSLATIONS[lang]
     
     # Als geen range geselecteerd, verberg slider
-    if start_date is None or end_date is None:
+    if range_value is None:
         return None, 0, 100, 0, {}, {'display': 'none'}
     
     try:
-        # Converteer datums naar datetime
-        start_dt = pd.to_datetime(start_date).replace(hour=0, minute=0, second=0)
-        end_dt = pd.to_datetime(end_date).replace(hour=23, minute=59, second=59)
+        # Bepaal start en eind tijden op basis van type
+        if range_value.get('type') == 'preset':
+            # Preset: gebruik minuten
+            minutes = range_value['minutes']
+            end_dt = datetime.now()
+            start_dt = end_dt - timedelta(minutes=minutes)
+        
+        elif range_value.get('type') == 'custom':
+            # Custom: gebruik specifieke datums en tijden
+            start_date = pd.to_datetime(range_value['start_date'])
+            start_dt = start_date.replace(
+                hour=range_value['start_hour'],
+                minute=range_value['start_minute'],
+                second=0
+            )
+            
+            end_date = pd.to_datetime(range_value['end_date'])
+            end_dt = end_date.replace(
+                hour=range_value['end_hour'],
+                minute=range_value['end_minute'],
+                second=59
+            )
+        else:
+            return None, 0, 100, 0, {}, {'display': 'none'}
         
         # Haal data op uit database
         conn = sqlite3.connect(DB_FILE)
@@ -775,20 +899,23 @@ def load_historical_data(start_date, end_date, lang):
 @app.callback(
     [Output('slider-timestamp-display', 'children'),
      Output('psychrometric-chart', 'figure', allow_duplicate=True)],
-    [Input('historical-time-slider', 'value')],
+    [Input('historical-time-slider', 'value'),
+     Input('historical-time-slider', 'drag_value')],
     [State('historical-data-store', 'data'),
      State('selected-language', 'data')],
     prevent_initial_call=True
 )
-def update_historical_view(slider_value, stored_data, lang):
-    """Update psychrometric chart met historische data punt"""
+def update_historical_view(slider_value, drag_value, stored_data, lang):
+    """Update psychrometric chart met historische data punt - live tijdens slepen"""
+    # Gebruik drag_value tijdens het slepen, anders value
+    current_value = drag_value if drag_value is not None else slider_value
     if lang is None:
         lang = 'nl'
     
     t = TRANSLATIONS[lang]
     
     # Check of er data is
-    if stored_data is None or slider_value is None:
+    if stored_data is None or current_value is None:
         return t['no_data_in_range'], create_psychrometric_chart(None, None, lang)
     
     try:
@@ -798,13 +925,13 @@ def update_historical_view(slider_value, stored_data, lang):
         humidities = stored_data['humidities']
         
         # Valideer slider waarde
-        if slider_value < 0 or slider_value >= len(timestamps):
+        if current_value < 0 or current_value >= len(timestamps):
             return t['no_data_in_range'], create_psychrometric_chart(None, None, lang)
         
         # Haal geselecteerd datapunt op
-        selected_timestamp = timestamps[slider_value]
-        selected_temp = temperatures[slider_value]
-        selected_humidity = humidities[slider_value]
+        selected_timestamp = timestamps[current_value]
+        selected_temp = temperatures[current_value]
+        selected_humidity = humidities[current_value]
         
         # Format timestamp voor display
         dt = pd.to_datetime(selected_timestamp)

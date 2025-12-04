@@ -292,47 +292,44 @@ def create_layout():
             'boxShadow': '0 4px 6px rgba(0,0,0,0.1)'
         }),
         
-        # Psychrometric Chart (Mollier Diagram)
+        # Psychrometric Chart (Mollier Diagram) met historische replay
         html.Div([
-            dcc.Graph(
-                id='psychrometric-chart',
-                config={'displayModeBar': True, 'displaylogo': False}
-            )
-        ], style={
-            'marginTop': '30px',
-            'padding': '20px',
-            'background': 'white',
-            'borderRadius': '15px',
-            'boxShadow': '0 4px 6px rgba(0,0,0,0.1)'
-        }),
-        
-        # Historical Data Replay Controls
-        html.Div([
-            html.H3(id='label-historical-replay', children='📜 Historische Data Analyse', style={
+            html.H3(id='label-psychrometric-chart', children='📐 Mollier Diagram (Psychrometrisch)', style={
                 'color': '#2c3e50',
                 'marginBottom': '20px',
                 'fontFamily': 'Arial Black'
             }),
             
-            html.Div([
-                html.Label(id='label-select-range', children='Selecteer datumbereik:', style={
-                    'fontSize': '16px',
-                    'fontWeight': 'bold',
-                    'color': '#2c3e50',
-                    'marginBottom': '10px',
-                    'display': 'block'
-                }),
-                dcc.DatePickerRange(
-                    id='historical-date-range',
-                    display_format='DD-MM-YYYY',
-                    start_date_placeholder_text='Startdatum',
-                    end_date_placeholder_text='Einddatum',
-                    style={'marginBottom': '20px'}
-                )
-            ], style={'marginBottom': '30px'}),
+            dcc.Graph(
+                id='psychrometric-chart',
+                config={'displayModeBar': True, 'displaylogo': False}
+            ),
             
+            # Knop om bereik te kiezen
             html.Div([
-                html.Label(id='label-time-slider', children='Tijdstip:', style={
+                html.Button(
+                    id='open-range-modal-btn',
+                    children='📅 Kies bereik voor historische analyse',
+                    n_clicks=0,
+                    style={
+                        'padding': '12px 30px',
+                        'fontSize': '16px',
+                        'fontWeight': 'bold',
+                        'background': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        'color': 'white',
+                        'border': 'none',
+                        'borderRadius': '12px',
+                        'cursor': 'pointer',
+                        'boxShadow': '0 4px 15px rgba(102, 126, 234, 0.4)',
+                        'transition': 'all 0.3s ease',
+                        'marginTop': '20px'
+                    }
+                )
+            ], style={'textAlign': 'center', 'marginBottom': '20px'}),
+            
+            # Slider voor historische data
+            html.Div([
+                html.Label(id='label-time-position', children='Tijdstip:', style={
                     'fontSize': '16px',
                     'fontWeight': 'bold',
                     'color': '#2c3e50',
@@ -340,11 +337,14 @@ def create_layout():
                     'display': 'block'
                 }),
                 html.Div(id='slider-timestamp-display', style={
-                    'fontSize': '18px',
+                    'fontSize': '20px',
                     'fontWeight': 'bold',
                     'color': '#3498db',
-                    'marginBottom': '10px',
-                    'textAlign': 'center'
+                    'marginBottom': '15px',
+                    'textAlign': 'center',
+                    'padding': '10px',
+                    'background': '#ecf0f1',
+                    'borderRadius': '8px'
                 }),
                 dcc.Slider(
                     id='historical-time-slider',
@@ -353,19 +353,122 @@ def create_layout():
                     step=1,
                     value=0,
                     marks={},
-                    tooltip={'placement': 'bottom', 'always_visible': False}
+                    tooltip={'placement': 'bottom', 'always_visible': True}
                 )
-            ], id='slider-container', style={'display': 'none'})
+            ], id='slider-container', style={'display': 'none', 'marginTop': '20px'}),
+            
+            # Modal met presets en custom range
+            html.Div([
+                html.Div([
+                    html.Div([
+                        html.H3(id='modal-title', children='📅 Selecteer Periode', style={'marginTop': '0', 'color': '#2c3e50', 'marginBottom': '20px'}),
+                        html.Button('✕', id='close-range-modal-btn', n_clicks=0, style={
+                            'position': 'absolute',
+                            'top': '15px',
+                            'right': '15px',
+                            'background': 'transparent',
+                            'border': 'none',
+                            'fontSize': '24px',
+                            'cursor': 'pointer',
+                            'color': '#7f8c8d'
+                        }),
+                        html.Div([
+                            # Preset buttons in modal
+                            html.H4('⚡ Snelle selectie', style={'color': '#34495e', 'marginBottom': '15px'}),
+                            html.Div([
+                                html.Button('5 min', id='preset-5min', n_clicks=0, style={'margin': '5px', 'padding': '8px 16px', 'borderRadius': '8px', 'border': '2px solid #3498db', 'background': 'white', 'cursor': 'pointer', 'fontWeight': 'bold', 'color': '#3498db'}),
+                                html.Button('10 min', id='preset-10min', n_clicks=0, style={'margin': '5px', 'padding': '8px 16px', 'borderRadius': '8px', 'border': '2px solid #3498db', 'background': 'white', 'cursor': 'pointer', 'fontWeight': 'bold', 'color': '#3498db'}),
+                                html.Button('30 min', id='preset-30min', n_clicks=0, style={'margin': '5px', 'padding': '8px 16px', 'borderRadius': '8px', 'border': '2px solid #3498db', 'background': 'white', 'cursor': 'pointer', 'fontWeight': 'bold', 'color': '#3498db'}),
+                                html.Button('1 uur', id='preset-1hour', n_clicks=0, style={'margin': '5px', 'padding': '8px 16px', 'borderRadius': '8px', 'border': '2px solid #3498db', 'background': 'white', 'cursor': 'pointer', 'fontWeight': 'bold', 'color': '#3498db'}),
+                                html.Button('2 uur', id='preset-2hours', n_clicks=0, style={'margin': '5px', 'padding': '8px 16px', 'borderRadius': '8px', 'border': '2px solid #3498db', 'background': 'white', 'cursor': 'pointer', 'fontWeight': 'bold', 'color': '#3498db'}),
+                                html.Button('6 uur', id='preset-6hours', n_clicks=0, style={'margin': '5px', 'padding': '8px 16px', 'borderRadius': '8px', 'border': '2px solid #3498db', 'background': 'white', 'cursor': 'pointer', 'fontWeight': 'bold', 'color': '#3498db'}),
+                            ], style={'marginBottom': '10px', 'textAlign': 'center'}),
+                            html.Div([
+                                html.Button('12 uur', id='preset-12hours', n_clicks=0, style={'margin': '5px', 'padding': '8px 16px', 'borderRadius': '8px', 'border': '2px solid #3498db', 'background': 'white', 'cursor': 'pointer', 'fontWeight': 'bold', 'color': '#3498db'}),
+                                html.Button('24 uur', id='preset-24hours', n_clicks=0, style={'margin': '5px', 'padding': '8px 16px', 'borderRadius': '8px', 'border': '2px solid #3498db', 'background': 'white', 'cursor': 'pointer', 'fontWeight': 'bold', 'color': '#3498db'}),
+                                html.Button('2 dagen', id='preset-2days', n_clicks=0, style={'margin': '5px', 'padding': '8px 16px', 'borderRadius': '8px', 'border': '2px solid #3498db', 'background': 'white', 'cursor': 'pointer', 'fontWeight': 'bold', 'color': '#3498db'}),
+                                html.Button('Week', id='preset-week', n_clicks=0, style={'margin': '5px', 'padding': '8px 16px', 'borderRadius': '8px', 'border': '2px solid #3498db', 'background': 'white', 'cursor': 'pointer', 'fontWeight': 'bold', 'color': '#3498db'}),
+                                html.Button('Maand', id='preset-month', n_clicks=0, style={'margin': '5px', 'padding': '8px 16px', 'borderRadius': '8px', 'border': '2px solid #3498db', 'background': 'white', 'cursor': 'pointer', 'fontWeight': 'bold', 'color': '#3498db'}),
+                            ], style={'marginBottom': '30px', 'textAlign': 'center'}),
+                            
+                            # Divider
+                            html.Hr(style={'border': '1px solid #ecf0f1', 'margin': '20px 0'}),
+                            
+                            # Custom date/time picker
+                            html.H4('🎯 Specifieke periode', style={'color': '#34495e', 'marginBottom': '15px'}),
+                            html.Label('Start datum en tijd:', style={'fontWeight': 'bold', 'marginBottom': '10px', 'display': 'block'}),
+                            dcc.DatePickerSingle(
+                                id='custom-start-date',
+                                display_format='DD-MM-YYYY',
+                                placeholder='Selecteer datum',
+                                style={'marginBottom': '10px'}
+                            ),
+                            html.Div([
+                                dcc.Input(id='custom-start-hour', type='number', min=0, max=23, value=0, placeholder='UU', style={'width': '70px', 'marginRight': '5px', 'padding': '8px', 'borderRadius': '5px', 'border': '1px solid #bdc3c7'}),
+                                html.Span(':', style={'marginRight': '5px', 'fontWeight': 'bold'}),
+                                dcc.Input(id='custom-start-minute', type='number', min=0, max=59, value=0, placeholder='MM', style={'width': '70px', 'padding': '8px', 'borderRadius': '5px', 'border': '1px solid #bdc3c7'})
+                            ], style={'marginBottom': '20px'}),
+                            
+                            html.Label('Eind datum en tijd:', style={'fontWeight': 'bold', 'marginBottom': '10px', 'display': 'block'}),
+                            dcc.DatePickerSingle(
+                                id='custom-end-date',
+                                display_format='DD-MM-YYYY',
+                                placeholder='Selecteer datum',
+                                style={'marginBottom': '10px'}
+                            ),
+                            html.Div([
+                                dcc.Input(id='custom-end-hour', type='number', min=0, max=23, value=23, placeholder='UU', style={'width': '70px', 'marginRight': '5px', 'padding': '8px', 'borderRadius': '5px', 'border': '1px solid #bdc3c7'}),
+                                html.Span(':', style={'marginRight': '5px', 'fontWeight': 'bold'}),
+                                dcc.Input(id='custom-end-minute', type='number', min=0, max=59, value=59, placeholder='MM', style={'width': '70px', 'padding': '8px', 'borderRadius': '5px', 'border': '1px solid #bdc3c7'})
+                            ], style={'marginBottom': '20px'}),
+                            
+                            html.Button('✅ Toepassen', id='apply-custom-range-btn', n_clicks=0, style={
+                                'width': '100%',
+                                'padding': '12px',
+                                'background': '#27ae60',
+                                'color': 'white',
+                                'border': 'none',
+                                'borderRadius': '8px',
+                                'cursor': 'pointer',
+                                'fontWeight': 'bold',
+                                'fontSize': '16px'
+                            })
+                        ], style={'padding': '25px'})
+                    ], style={
+                        'position': 'relative',
+                        'background': 'white',
+                        'borderRadius': '15px',
+                        'maxWidth': '600px',
+                        'maxHeight': '90vh',
+                        'overflow': 'auto',
+                        'margin': '30px auto',
+                        'boxShadow': '0 10px 40px rgba(0,0,0,0.3)'
+                    })
+                ], id='range-modal', style={
+                    'display': 'none',
+                    'position': 'fixed',
+                    'zIndex': '1000',
+                    'left': '0',
+                    'top': '0',
+                    'width': '100%',
+                    'height': '100%',
+                    'background': 'rgba(0,0,0,0.5)',
+                    'overflow': 'auto'
+                })
+            ])
         ], style={
             'marginTop': '30px',
-            'padding': '20px',
+            'padding': '30px',
             'background': 'white',
             'borderRadius': '15px',
-            'boxShadow': '0 4px 6px rgba(0,0,0,0.1)'
+            'boxShadow': '0 4px 6px rgba(0,0,0,0.1)',
+            'marginBottom': '50px'
         }),
         
         # Store voor historische data
-        dcc.Store(id='historical-data-store')
+        dcc.Store(id='historical-data-store'),
+        dcc.Store(id='selected-range-method', data='preset'),  # 'preset' of 'custom'
+        dcc.Store(id='selected-range-value')  # Opslaan van minutes (preset) of dates (custom)
     ], style={
         'maxWidth': '1400px',
         'margin': '0 auto',

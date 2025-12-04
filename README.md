@@ -20,8 +20,10 @@ Een professionele real-time klimaatmonitoring dashboard applicatie voor de XY-MD
   - Absolute vochtigheid (g/m³)
   - Humidex (wetenschappelijke behagelijkheidsindex)
   - Behagelijkheidscore (0-6, gebaseerd op Humidex)
-- **Psychrometrisch diagram**: Mollier diagram met live indicator en comfortzone visualisatie
-- **Wetenschappelijke analyse**: Humidex formule volgens Environment Canada standaard
+- **Psychrometrisch diagram**: Volledig Mollier diagram met verzadigingslijn, RH curves, comfortzone en live indicator
+- **Historische data replay**: Tijdreizen door data met preset knoppen (5min-1maand) of custom datum/tijd selectie
+- **Interactieve slider**: Live updates tijdens slepen voor vloeiende historische data navigatie
+- **Wetenschappelijke analyse**: Humidex formule volgens Environment Canada standaard met August-Roche-Magnus vergelijking
 - **Meertalig**: Nederlands en Engels, eenvoudig uitbreidbaar
 - **Professionele UI**: Modern dashboard met gradient header en card-based layout
 - **Zoom behoud**: Inzoomen op grafieken blijft behouden tijdens live updates
@@ -180,9 +182,15 @@ De applicatie gebruikt de **Humidex** (Humidity Index) voor wetenschappelijke be
 ```
 Humidex = T + 0.5555 × (e - 10)
 ```
-waarbij:
+waarby:
 - T = temperatuur in °C
-- e = dampdrukverzadiging in hPa (berekend via dauwpunt)
+- e = dampdrukverzadiging in hPa (berekend via August-Roche-Magnus vergelijking)
+
+**August-Roche-Magnus vergelijking voor dampdruk:**
+```
+e = 6.11 × exp(5417.7530 × ((1/273.16) - (1/Td_kelvin)))
+```
+waar Td_kelvin = dauwpunt in Kelvin
 
 #### Comfort classificatie op basis van Humidex:
 
@@ -197,15 +205,64 @@ waarbij:
 
 ### 📐 Mollier Diagram (Psychrometric Chart)
 
-De applicatie toont een interactief **psychrometrisch diagram** onderaan de pagina met:
+De applicatie toont een interactief **psychrometrisch diagram** (Mollier diagram) met:
 
-- **Verzadigingslijn**: 100% relatieve vochtigheid curve
-- **RH lijnen**: 10%, 20%, ..., 90% relatieve vochtigheid
-- **Comfortzone**: Gemarkeerd gebied (20-26°C, 30-60% RH)
+- **Verzadigingslijn**: 100% relatieve vochtigheid curve (zwarte lijn)
+- **RH lijnen**: 10%, 20%, ..., 90% relatieve vochtigheid (grijze lijnen)
+- **Comfortzone**: Groen gemarkeerd gebied (20-26°C, 30-60% RH)
 - **Live indicator**: Real-time positie van huidige klimaatconditie (rode ster ⭐)
+- **Historische positie**: Oranje marker (🔶) bij gebruik van historische data replay
 - **Vochtigheidsratio**: Y-as toont absolute vochtigheid in g water / kg droge lucht
+- **Zoom & Pan**: Volledige Plotly interactiviteit voor gedetailleerde analyse
 
-Dit diagram helpt om in één oogopslag te zien of de klimaatconditie binnen de comfortzone valt en hoe deze zich verhoudt tot verzadigingsgrenzen.
+Dit diagram helpt om in één oogopslag te zien of de klimaatconditie binnen de comfortzone valt en hoe deze zich verhoudt tot verzadigingsgrenzen. Bij gebruik van de historische slider toont de oranje marker de positie op het geselecteerde tijdstip.
+
+### ⏮️ Historische Data Replay
+
+De applicatie biedt geavanceerde historische data analyse met twee invoermethoden:
+
+#### **Preset Knoppen** (Snelle selectie)
+Klik op **"Kies bereik voor historische analyse"** om de modal te openen met 11 preset knoppen:
+- **5 min** - Laatste 5 minuten
+- **10 min** - Laatste 10 minuten
+- **30 min** - Laatste 30 minuten
+- **1 uur** - Laatste uur
+- **2 uur** - Laatste 2 uur
+- **6 uur** - Laatste 6 uur
+- **12 uur** - Laatste 12 uur
+- **24 uur** - Laatste dag
+- **2 dagen** - Laatste 2 dagen
+- **Week** - Laatste week
+- **Maand** - Laatste maand
+
+#### **Custom Range** (Precisie selectie)
+- Klik in de modal op **"Custom..."** om een aangepaste periode in te stellen
+- Kies start datum en tijd met uur:minuut precisie
+- Kies eind datum en tijd met uur:minuut precisie
+- Ondersteunt dezelfde dag selectie voor start en eind
+- Uur selectie: 00-23
+- Minuut selectie: 00-59
+- Validatie: start tijd moet vóór eind tijd liggen
+
+#### **Interactieve Tijdlijn Slider**
+- Na selectie van een periode verschijnt een **live-updating slider**
+- Sleep de slider om terug te "reizen" door de tijd
+- **Live updates tijdens slepen**: Het diagram updatet direct zonder de muis los te laten
+- Het **psychrometrisch diagram** toont de positie van de klimaatconditie op dat moment (oranje marker 🔶)
+- Timestamp wordt live weergegeven in DD-MM HH:MM formaat
+- Vloeiende navigatie door historische data voor gedetailleerde analyse
+
+#### **Gescheiden Live & Historische Data**
+- **Live grafieken** (temperatuur, vochtigheid) blijven altijd real-time updates tonen
+- **Mollier diagram** schakelt tussen live mode (rode ster ⭐) en historische mode (oranje marker 🔶)
+- Geen interferentie tussen live monitoring en historische analyse
+
+**Gebruik:**
+1. Klik op **"Kies bereik voor historische analyse"** knop onder het Mollier diagram
+2. Kies een preset knop voor snelle analyse of "Custom..." voor specifieke datum/tijd
+3. Gebruik de **live-updating slider** om vloeiend door de historische data te navigeren
+4. Bekijk hoe de klimaatconditie veranderde over tijd in het Mollier diagram
+5. Live grafieken bovenaan blijven gewoon real-time data tonen
 
 ### 📈 Database Schema
 
@@ -481,6 +538,43 @@ The application displays an interactive **psychrometric chart** at the bottom of
 
 This diagram helps to see at a glance whether the climate condition is within the comfort zone and how it relates to saturation limits.
 
+### ⏮️ Historical Data Replay
+
+The application offers advanced historical data analysis with two input methods:
+
+#### **Preset Buttons** (Quick selection)
+- **5 min** - Last 5 minutes
+- **10 min** - Last 10 minutes
+- **30 min** - Last 30 minutes
+- **1 hour** - Last hour
+- **2 hours** - Last 2 hours
+- **6 hours** - Last 6 hours
+- **12 hours** - Last 12 hours
+- **24 hours** - Last day
+- **2 days** - Last 2 days
+- **Week** - Last week
+- **Month** - Last month
+
+#### **Custom Range** (Precision selection)
+- Click the **"Custom..."** button to open a modal
+- Choose start date and time (hour:minute)
+- Choose end date and time (hour:minute)
+- Supports same day selection for start and end
+- Hour selection: 0-23
+- Minute selection: 0-59
+
+#### **Timeline Slider**
+- After selecting a period, an **interactive slider** appears
+- Drag the slider to "travel" back through time
+- The **psychrometric chart** shows the climate condition position at that moment
+- Timestamp is displayed live in DD-MM HH:MM format
+
+**Usage:**
+1. Click a preset button for quick analysis
+2. Or click "Custom..." for specific date/time selection
+3. Use the slider to navigate through historical data
+4. See how the climate condition changed over time in the Mollier diagram
+
 ### 📈 Database Schema
 
 The SQLite database stores all measurements:
@@ -496,6 +590,24 @@ CREATE TABLE measurements (
 );
 ```
 
+### 🧪 Testing
+
+De applicatie bevat een geautomatiseerde test suite:
+
+```bash
+python test_app.py
+```
+
+**Test Coverage:**
+- ✅ **Berekeningen**: Dauwpunt, absolute vochtigheid, Humidex formules
+- ✅ **Database**: CRUD operaties, queries, schema validatie
+- ✅ **Vertalingen**: NL/EN key pariteit en volledigheid
+- ✅ **Psychrometrisch diagram**: Chart generatie, meertaligheid
+- ✅ **Data validatie**: Temperatuur en vochtigheid ranges
+- ✅ **Productie database**: Verificatie van database bestaan en structuur
+
+Alle tests moeten slagen voordat nieuwe features worden gecommit.
+
 ### 🛠️ Development
 
 #### Generating requirements.txt
@@ -504,9 +616,10 @@ pip freeze > requirements.txt
 ```
 
 #### Code structure
-- **app.py**: Modbus communication, database operations, Dash callbacks
-- **layout.py**: UI components and styling
-- **translations.py**: Translation system
+- **app.py**: Modbus communication, database operations, Dash callbacks, Humidex & psychrometric calculations
+- **layout.py**: UI components, modal system, slider, styling
+- **translations.py**: Translation system (NL/EN)
+- **test_app.py**: Automated test suite (15 tests)
 
 ### 🐛 Troubleshooting
 
@@ -521,6 +634,29 @@ pip freeze > requirements.txt
 
 #### Port already in use
 - Change `APP_PORT` in `.env` to another port
+
+### 📝 Version History
+
+#### v1.1.0 (December 4, 2025)
+- ➕ **Humidex calculation**: Scientific comfort index using Environment Canada standard with August-Roche-Magnus equation
+- ➕ **Psychrometric chart**: Full Mollier diagram with saturation line, RH curves (10-90%), comfort zone, and live indicator
+- ➕ **Historical data replay**: Time-travel through data with modal interface
+- ➕ **Preset buttons**: 11 quick selection buttons (5min to 1 month)
+- ➕ **Custom date/time picker**: Hour:minute precision for exact historical ranges
+- ➕ **Live slider updates**: Real-time chart updates while dragging slider (no mouse release needed)
+- ➕ **Layout consolidation**: Mollier diagram section with integrated historical controls
+- ➕ **Separated data streams**: Live graphs remain real-time while historical replay operates independently
+- ➕ **Automated test suite**: 15 tests covering calculations, database, translations, charts, and validation
+- 🔧 **Improved UX**: Modal popup system, better button organization, timestamp display in DD-MM HH:MM format
+- 🐛 **Bug fixes**: Fixed callback_context imports, modal opening issues, slider interaction
+
+#### v1.0.0 (Initial Release)
+- ✨ Real-time monitoring with live graphs
+- ✨ SQLite database with persistent storage
+- ✨ Multi-language support (NL/EN)
+- ✨ Temperature, humidity, dewpoint, absolute humidity measurements
+- ✨ Configurable data retention
+- ✨ Professional dashboard UI
 
 ### 📜 License
 
