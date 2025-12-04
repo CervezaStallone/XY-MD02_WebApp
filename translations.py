@@ -3,8 +3,8 @@
 
 # Metadata voor talen (voor automatische dropdown generatie)
 LANGUAGE_NAMES = {
-    'nl': '🇳🇱 Nederlands',
-    'en': '🇬🇧 English'
+    'nl': 'NL',
+    'en': 'EN'
 }
 
 TRANSLATIONS = {
@@ -29,6 +29,10 @@ TRANSLATIONS = {
         'last_6hours': '🕐 Laatste 6 uur',
         'last_24hours': '📆 Laatste 24 uur',
         'last_7days': '📆 Laatste 7 dagen',
+        'last_14days': '📆 Laatste 14 dagen',
+        'last_1month': '📅 Laatste 1 maand',
+        'last_3months': '📅 Laatste 3 maanden',
+        'last_6months': '📅 Laatste 6 maanden',
         'all_data': '📊 Alle data',
         'comfort_0': 'Ongezond (risico)',
         'comfort_1': 'Ongezond',
@@ -60,6 +64,10 @@ TRANSLATIONS = {
         'last_6hours': '🕐 Last 6 hours',
         'last_24hours': '📆 Last 24 hours',
         'last_7days': '📆 Last 7 days',
+        'last_14days': '📆 Last 14 days',
+        'last_1month': '📅 Last 1 month',
+        'last_3months': '📅 Last 3 months',
+        'last_6months': '📅 Last 6 months',
         'all_data': '📊 All data',
         'comfort_0': 'Unhealthy (risk)',
         'comfort_1': 'Unhealthy',

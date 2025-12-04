@@ -73,14 +73,6 @@ def create_layout():
         # Header met taalkeuze
         html.Div([
             html.Div([
-                html.H1(id='page-title', children='🌡️ Modbus Klimaat Monitor', style={
-                    'textAlign': 'center',
-                    'color': '#2c3e50',
-                    'marginBottom': '0px',
-                    'fontFamily': 'Arial, sans-serif',
-                    'display': 'inline-block',
-                    'width': '80%'
-                }),
                 html.Div([
                     dcc.Dropdown(
                         id='language-selector',
@@ -88,12 +80,20 @@ def create_layout():
                         value='nl',
                         clearable=False,
                         style={
-                            'width': '160px',
+                            'width': '80px',
                             'fontSize': '14px',
                             'fontWeight': 'bold'
                         }
                     )
-                ], style={'display': 'inline-block', 'width': '20%', 'textAlign': 'right', 'verticalAlign': 'middle'})
+                ], style={'display': 'inline-block', 'width': '10%', 'textAlign': 'left', 'verticalAlign': 'middle'}),
+                html.H1(id='page-title', children='🌡️ Modbus Klimaat Monitor', style={
+                    'textAlign': 'center',
+                    'color': '#2c3e50',
+                    'marginBottom': '0px',
+                    'fontFamily': 'Arial, sans-serif',
+                    'display': 'inline-block',
+                    'width': '90%'
+                })
             ])
         ], style={
             'background': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',

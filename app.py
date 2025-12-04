@@ -161,6 +161,10 @@ def update_language(lang):
         {'label': t['last_6hours'], 'value': 360},
         {'label': t['last_24hours'], 'value': 1440},
         {'label': t['last_7days'], 'value': 10080},
+        {'label': t['last_14days'], 'value': 20160},
+        {'label': t['last_1month'], 'value': 43200},
+        {'label': t['last_3months'], 'value': 129600},
+        {'label': t['last_6months'], 'value': 259200},
         {'label': t['all_data'], 'value': -1}
     ]
     
