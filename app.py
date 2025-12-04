@@ -870,23 +870,51 @@ def load_historical_data(range_value, lang):
         # Converteer timestamp kolom
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         
-        # Maak slider marks (toon max 10 labels)
+        # Bepaal tijdsverschil in minuten
+        time_diff_minutes = (end_dt - start_dt).total_seconds() / 60
+        
+        # Als range > 1 minuut, sample per minuut (anders per seconde)
+        if time_diff_minutes > 1:
+            # Resample naar 1 minuut intervals (gebruik mean voor aggregatie)
+            df = df.set_index('timestamp').resample('1min').mean().reset_index()
+            df = df.dropna()  # Verwijder lege minuten
+        
+        if df.empty:
+            return None, 0, 100, 0, {}, {'display': 'none'}
+        
         n_points = len(df)
-        if n_points <= 10:
+        
+        # Maak slider marks met intelligente tijd labels
+        if time_diff_minutes <= 60:  # <= 1 uur: toon HH:MM
+            label_format = '%H:%M'
+            mark_count = min(10, n_points)
+        elif time_diff_minutes <= 1440:  # <= 1 dag: toon HH:MM
+            label_format = '%H:%M'
+            mark_count = min(12, n_points)
+        elif time_diff_minutes <= 10080:  # <= 1 week: toon DD-MM HH:MM
+            label_format = '%d-%m %H:%M'
+            mark_count = min(10, n_points)
+        else:  # > 1 week: toon DD-MM
+            label_format = '%d-%m'
+            mark_count = min(10, n_points)
+        
+        # Bereken mark indices
+        if n_points <= mark_count:
             mark_indices = list(range(n_points))
         else:
-            mark_indices = [int(i * n_points / 10) for i in range(11)]
+            mark_indices = [int(i * (n_points - 1) / (mark_count - 1)) for i in range(mark_count)]
         
         marks = {}
         for idx in mark_indices:
             if idx < n_points:
-                marks[idx] = df['timestamp'].iloc[idx].strftime('%d-%m %H:%M')
+                marks[idx] = df['timestamp'].iloc[idx].strftime(label_format)
         
         # Sla data op in store (converteer naar dict voor JSON serialization)
         data_dict = {
             'timestamps': df['timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
             'temperatures': df['temperature'].tolist(),
-            'humidities': df['humidity'].tolist()
+            'humidities': df['humidity'].tolist(),
+            'sampling_mode': 'minute' if time_diff_minutes > 1 else 'second'
         }
         
         return data_dict, 0, n_points - 1, 0, marks, {'display': 'block'}

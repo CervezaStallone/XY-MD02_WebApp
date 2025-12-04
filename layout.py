@@ -353,7 +353,7 @@ def create_layout():
                     step=1,
                     value=0,
                     marks={},
-                    tooltip={'placement': 'bottom', 'always_visible': True}
+                    tooltip={'placement': 'bottom', 'always_visible': False}
                 )
             ], id='slider-container', style={'display': 'none', 'marginTop': '20px'}),
             
