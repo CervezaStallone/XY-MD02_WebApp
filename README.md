@@ -18,7 +18,10 @@ Een professionele real-time klimaatmonitoring dashboard applicatie voor de XY-MD
   - Luchtvochtigheid (%)
   - Dauwpunt (berekend)
   - Absolute vochtigheid (g/m³)
-  - Behagelijkheidscore (0-6)
+  - Humidex (wetenschappelijke behagelijkheidsindex)
+  - Behagelijkheidscore (0-6, gebaseerd op Humidex)
+- **Psychrometrisch diagram**: Mollier diagram met live indicator en comfortzone visualisatie
+- **Wetenschappelijke analyse**: Humidex formule volgens Environment Canada standaard
 - **Meertalig**: Nederlands en Engels, eenvoudig uitbreidbaar
 - **Professionele UI**: Modern dashboard met gradient header en card-based layout
 - **Zoom behoud**: Inzoomen op grafieken blijft behouden tijdens live updates
@@ -169,17 +172,40 @@ TRANSLATIONS = {
 
 De dropdown wordt automatisch bijgewerkt!
 
-### 📊 Behagelijkheidsscore
+### 📊 Behagelijkheidsscore & Humidex
 
-De applicatie berekent een behagelijkheidsscore (0-6) op basis van temperatuur en luchtvochtigheid:
+De applicatie gebruikt de **Humidex** (Humidity Index) voor wetenschappelijke behagelijkheidsberekening volgens Environment Canada standaard.
 
-- **6 - Optimaal**: Ideale omstandigheden (20-22°C, 40-50% RH)
-- **5 - Comfortabel**: Behaaglijke omstandigheden
-- **4 - Comfortabel laag**: Nog steeds comfortabel
-- **3 - Licht onaangenaam**: Merkbaar oncomfortabel
-- **2 - Onaangenaam**: Duidelijk oncomfortabel
-- **1 - Ongezond**: Gezondheidsrisico's mogelijk
-- **0 - Ongezond (risico)**: Ernstige gezondheidsrisico's
+#### Humidex Formule
+```
+Humidex = T + 0.5555 × (e - 10)
+```
+waarbij:
+- T = temperatuur in °C
+- e = dampdrukverzadiging in hPa (berekend via dauwpunt)
+
+#### Comfort classificatie op basis van Humidex:
+
+- **< 20**: Te koud - Score 0 🥶
+- **20-27**: Comfortabel koel - Score 4 🙂
+- **27-30**: Comfortabel - Score 5 😊
+- **30-35**: Optimaal comfortabel - Score 6 ✨
+- **35-40**: Enig ongemak - Score 3 😓
+- **40-46**: Veel ongemak, vermijd fysieke inspanning - Score 2 😟
+- **46-54**: Gevaarlijk, hittekrampen mogelijk - Score 1 🔥
+- **> 54**: Heatstroke dreigend - Score 0 ⚠️
+
+### 📐 Mollier Diagram (Psychrometric Chart)
+
+De applicatie toont een interactief **psychrometrisch diagram** onderaan de pagina met:
+
+- **Verzadigingslijn**: 100% relatieve vochtigheid curve
+- **RH lijnen**: 10%, 20%, ..., 90% relatieve vochtigheid
+- **Comfortzone**: Gemarkeerd gebied (20-26°C, 30-60% RH)
+- **Live indicator**: Real-time positie van huidige klimaatconditie (rode ster ⭐)
+- **Vochtigheidsratio**: Y-as toont absolute vochtigheid in g water / kg droge lucht
+
+Dit diagram helpt om in één oogopslag te zien of de klimaatconditie binnen de comfortzone valt en hoe deze zich verhoudt tot verzadigingsgrenzen.
 
 ### 📈 Database Schema
 
@@ -266,7 +292,10 @@ A professional real-time climate monitoring dashboard application for the XY-MD0
   - Humidity (%)
   - Dew Point (calculated)
   - Absolute Humidity (g/m³)
-  - Comfort Score (0-6)
+  - Humidex (scientific comfort index)
+  - Comfort Score (0-6, based on Humidex)
+- **Psychrometric chart**: Mollier diagram with live indicator and comfort zone visualization
+- **Scientific analysis**: Humidex formula according to Environment Canada standard
 - **Multilingual**: Dutch and English, easily expandable
 - **Professional UI**: Modern dashboard with gradient header and card-based layout
 - **Zoom persistence**: Graph zoom stays preserved during live updates
@@ -417,17 +446,40 @@ TRANSLATIONS = {
 
 The dropdown will be updated automatically!
 
-### 📊 Comfort Score
+### 📊 Comfort Score & Humidex
 
-The application calculates a comfort score (0-6) based on temperature and humidity:
+The application uses the **Humidex** (Humidity Index) for scientific comfort calculation according to Environment Canada standard.
 
-- **6 - Optimal**: Ideal conditions (20-22°C, 40-50% RH)
-- **5 - Comfortable**: Pleasant conditions
-- **4 - Comfortable Low**: Still comfortable
-- **3 - Slightly Uncomfortable**: Noticeably uncomfortable
-- **2 - Uncomfortable**: Clearly uncomfortable
-- **1 - Unhealthy**: Possible health risks
-- **0 - Unhealthy (Risk)**: Serious health risks
+#### Humidex Formula
+```
+Humidex = T + 0.5555 × (e - 10)
+```
+where:
+- T = temperature in °C
+- e = vapor pressure saturation in hPa (calculated via dew point)
+
+#### Comfort classification based on Humidex:
+
+- **< 20**: Too cold - Score 0 🥶
+- **20-27**: Comfortably cool - Score 4 🙂
+- **27-30**: Comfortable - Score 5 😊
+- **30-35**: Optimally comfortable - Score 6 ✨
+- **35-40**: Some discomfort - Score 3 😓
+- **40-46**: Great discomfort, avoid physical exertion - Score 2 😟
+- **46-54**: Dangerous, heat cramps possible - Score 1 🔥
+- **> 54**: Heat stroke imminent - Score 0 ⚠️
+
+### 📐 Mollier Diagram (Psychrometric Chart)
+
+The application displays an interactive **psychrometric chart** at the bottom of the page with:
+
+- **Saturation line**: 100% relative humidity curve
+- **RH lines**: 10%, 20%, ..., 90% relative humidity
+- **Comfort zone**: Marked area (20-26°C, 30-60% RH)
+- **Live indicator**: Real-time position of current climate condition (red star ⭐)
+- **Humidity ratio**: Y-axis shows absolute humidity in g water / kg dry air
+
+This diagram helps to see at a glance whether the climate condition is within the comfort zone and how it relates to saturation limits.
 
 ### 📈 Database Schema
 

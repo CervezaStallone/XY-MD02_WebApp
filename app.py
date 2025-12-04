@@ -10,6 +10,7 @@ import sqlite3
 import pandas as pd
 import math
 import os
+import numpy as np
 from dotenv import load_dotenv
 
 # Import externe modules
@@ -161,6 +162,14 @@ def read_modbus_data():
             # Formule: AH = (6.112 × e^((17.67 × T)/(T+243.5)) × RH × 2.1674) / (273.15+T)
             absolute_humidity = (6.112 * math.exp((17.67 * temperature) / (temperature + 243.5)) * humidity * 2.1674) / (273.15 + temperature)
             
+            # Bereken Humidex
+            # Formule: Humidex = T + 0.5555 × (e - 10)
+            # waarbij e = 6.11 × e^(5417.7530 × (1/273.16 - 1/(273.15+Td)))
+            # en Td = dauwpunt in Kelvin
+            dewpoint_kelvin = dewpoint + 273.15
+            e = 6.11 * math.exp(5417.7530 * ((1/273.16) - (1/dewpoint_kelvin)))
+            humidex = temperature + 0.5555 * (e - 10)
+            
             # Opslaan in database
             timestamp = datetime.now()
             timestamp_str = timestamp.isoformat()
@@ -184,6 +193,153 @@ def read_modbus_data():
 modbus_thread = threading.Thread(target=read_modbus_data, daemon=True)
 modbus_thread.start()
 
+def create_psychrometric_chart(current_temp, current_rh, lang='nl'):
+    """Genereer een psychrometrisch (Mollier) diagram met huidige conditie"""
+    t = TRANSLATIONS[lang]
+    
+    # Temperatuur range voor het diagram (0-40°C)
+    temp_range = np.linspace(0, 40, 200)
+    
+    # Creëer figure
+    fig = go.Figure()
+    
+    # Teken verzadigingslijn (100% RH)
+    sat_humidity_ratio = []
+    for temp in temp_range:
+        # Verzadigde dampdrukverzadiging (Pa) - August-Roche-Magnus formule
+        pws = 611.2 * np.exp(17.62 * temp / (243.12 + temp))
+        # Vochtigheidsratio bij verzadiging (kg water / kg dry air)
+        ws = 0.622 * pws / (101325 - pws)
+        sat_humidity_ratio.append(ws * 1000)  # Converteer naar g/kg
+    
+    fig.add_trace(go.Scatter(
+        x=temp_range,
+        y=sat_humidity_ratio,
+        mode='lines',
+        name='100% RH',
+        line=dict(color='#3498db', width=3),
+        showlegend=True
+    ))
+    
+    # Teken RH lijnen (10%, 20%, ..., 90%)
+    rh_levels = [10, 20, 30, 40, 50, 60, 70, 80, 90]
+    colors = ['#ecf0f1', '#d5dbdb', '#bdc3c7', '#95a5a6', '#7f8c8d', '#5d6d7e', '#34495e', '#2c3e50', '#1c2833']
+    
+    for rh, color in zip(rh_levels, colors):
+        humidity_ratio = []
+        for temp in temp_range:
+            pws = 611.2 * np.exp(17.62 * temp / (243.12 + temp))
+            pw = pws * (rh / 100.0)
+            if pw >= 101325:  # Voorkom onmogelijke waarden
+                humidity_ratio.append(None)
+            else:
+                w = 0.622 * pw / (101325 - pw)
+                humidity_ratio.append(w * 1000)
+        
+        fig.add_trace(go.Scatter(
+            x=temp_range,
+            y=humidity_ratio,
+            mode='lines',
+            name=f'{rh}% RH',
+            line=dict(color=color, width=1, dash='dash'),
+            showlegend=False,
+            hovertemplate=f'{rh}% RH<br>T: %{{x:.1f}}°C<br>ω: %{{y:.1f}} g/kg<extra></extra>'
+        ))
+    
+    # Comfortzone (typisch 20-26°C en 30-60% RH)
+    comfort_temp_range = np.linspace(20, 26, 50)
+    
+    # Ondergrens comfortzone (30% RH)
+    comfort_lower = []
+    for temp in comfort_temp_range:
+        pws = 611.2 * np.exp(17.62 * temp / (243.12 + temp))
+        pw = pws * 0.30
+        w = 0.622 * pw / (101325 - pw)
+        comfort_lower.append(w * 1000)
+    
+    # Bovengrens comfortzone (60% RH)
+    comfort_upper = []
+    for temp in comfort_temp_range:
+        pws = 611.2 * np.exp(17.62 * temp / (243.12 + temp))
+        pw = pws * 0.60
+        w = 0.622 * pw / (101325 - pw)
+        comfort_upper.append(w * 1000)
+    
+    # Vul comfortzone
+    fig.add_trace(go.Scatter(
+        x=list(comfort_temp_range) + list(comfort_temp_range[::-1]),
+        y=comfort_lower + comfort_upper[::-1],
+        fill='toself',
+        fillcolor='rgba(46, 204, 113, 0.2)',
+        line=dict(width=0),
+        name=t['comfort_zone'],
+        showlegend=True,
+        hoverinfo='skip'
+    ))
+    
+    # Bereken huidige vochtigheidsratio
+    if current_temp is not None and current_rh is not None:
+        pws_current = 611.2 * np.exp(17.62 * current_temp / (243.12 + current_temp))
+        pw_current = pws_current * (current_rh / 100.0)
+        w_current = 0.622 * pw_current / (101325 - pw_current)
+        w_current_g_kg = w_current * 1000
+        
+        # Markeer huidige conditie
+        fig.add_trace(go.Scatter(
+            x=[current_temp],
+            y=[w_current_g_kg],
+            mode='markers+text',
+            name=t['current_condition'],
+            marker=dict(
+                size=15,
+                color='#e74c3c',
+                symbol='star',
+                line=dict(width=2, color='white')
+            ),
+            text=[f"{current_temp:.1f}°C<br>{current_rh:.0f}%"],
+            textposition='top center',
+            textfont=dict(size=12, color='#e74c3c', family='Arial Black'),
+            showlegend=True,
+            hovertemplate=f'{t["current_condition"]}<br>T: {current_temp:.1f}°C<br>RH: {current_rh:.0f}%<br>ω: {w_current_g_kg:.1f} g/kg<extra></extra>'
+        ))
+    
+    # Layout
+    fig.update_layout(
+        title={
+            'text': f"📊 {t['psychrometric_chart']}",
+            'x': 0.5,
+            'xanchor': 'center',
+            'font': {'size': 20, 'color': '#2c3e50', 'family': 'Arial Black'}
+        },
+        xaxis_title=t['dry_bulb_temp'],
+        yaxis_title='Vochtigheidsratio ω (g water / kg droge lucht)',
+        xaxis=dict(
+            range=[0, 40],
+            showgrid=True,
+            gridcolor='rgba(0,0,0,0.1)',
+            dtick=5
+        ),
+        yaxis=dict(
+            range=[0, 25],
+            showgrid=True,
+            gridcolor='rgba(0,0,0,0.1)',
+            dtick=5
+        ),
+        height=600,
+        plot_bgcolor='rgba(255,255,255,1)',
+        paper_bgcolor='white',
+        hovermode='closest',
+        legend=dict(
+            x=0.02,
+            y=0.98,
+            bgcolor='rgba(255,255,255,0.9)',
+            bordercolor='#2c3e50',
+            borderwidth=1
+        )
+    )
+    
+    return fig
+
 # Dash applicatie
 app = Dash(__name__)
 app.index_string = HTML_TEMPLATE
@@ -202,7 +358,10 @@ app.layout = create_layout()
      Output('label-time-period', 'children'),
      Output('label-database', 'children'),
      Output('tooltip-content', 'children'),
-     Output('time-range-dropdown', 'options')],
+     Output('time-range-dropdown', 'options'),
+     Output('label-historical-replay', 'children'),
+     Output('label-select-range', 'children'),
+     Output('label-time-slider', 'children')],
     [Input('language-selector', 'value')]
 )
 def update_language(lang):
@@ -257,7 +416,10 @@ def update_language(lang):
         t['time_period'],
         t['database'],
         tooltip_content,
-        dropdown_options
+        dropdown_options,
+        f"📜 {t['historical_replay']}",
+        t['select_date_range'],
+        t['time_slider']
     )
 
 @app.callback(
@@ -285,38 +447,36 @@ def update_graph(n, time_range_minutes, relayout_data, lang, stored_relayout):
     t = TRANSLATIONS[lang]
     
     def get_comfort_level(temp, humidity):
-        """Bepaal comfort level op basis van temperatuur en luchtvochtigheid"""
-        # Boundary check voor extreme waarden
-        if temp < 10:
-            return t['comfort_0'], 0, "🥶"
-        if temp > 35:
-            return t['comfort_0'], 0, "🔥"
-        if humidity < 20 or humidity > 80:
-            return t['comfort_1'], 1, "⚠️"
+        """Bepaal comfort level op basis van Humidex"""
+        # Bereken Humidex
+        # Eerst dauwpunt berekenen
+        dewpoint = temp - ((100 - humidity) / 5.0)
+        dewpoint_kelvin = dewpoint + 273.15
         
-        # Definieer de comfort matrix (score en emoji mapping)
-        comfort_data = {
-            16: {30: (2, "❄️"), 40: (2, "❄️"), 50: (3, "🌧️"), 60: (3, "🌧️"), 70: (2, "❄️")},
-            18: {30: (3, "🌧️"), 40: (4, "🙂"), 50: (5, "😊"), 60: (3, "🌧️"), 70: (2, "😟")},
-            20: {30: (4, "🙂"), 40: (5, "😊"), 50: (6, "✨"), 60: (5, "😊"), 70: (3, "🌧️")},
-            22: {30: (5, "😊"), 40: (6, "✨"), 50: (6, "✨"), 60: (5, "😊"), 70: (3, "😓")},
-            24: {30: (4, "🙂"), 40: (5, "😊"), 50: (5, "😊"), 60: (3, "😓"), 70: (2, "😟")},
-            26: {30: (3, "😓"), 40: (3, "😓"), 50: (3, "😓"), 60: (2, "😟"), 70: (1, "🔥")},
-            28: {30: (2, "😥"), 40: (2, "😥"), 50: (2, "😟"), 60: (1, "🔥"), 70: (0, "⚠️")},
-            30: {30: (1, "🔥"), 40: (1, "🔥"), 50: (1, "🔥"), 60: (0, "⚠️"), 70: (0, "⚠️")}
-        }
+        # Dampdrukverzadiging bij dauwpunt
+        e = 6.11 * math.exp(5417.7530 * ((1/273.16) - (1/dewpoint_kelvin)))
         
-        # Vind dichtstbijzijnde temperatuur (afgerond naar 2 graden)
-        temp_keys = [16, 18, 20, 22, 24, 26, 28, 30]
-        closest_temp = min(temp_keys, key=lambda x: abs(x - temp))
+        # Humidex formule
+        humidex = temp + 0.5555 * (e - 10)
         
-        # Vind dichtstbijzijnde luchtvochtigheid (afgerond naar 10%)
-        hum_keys = [30, 40, 50, 60, 70]
-        closest_hum = min(hum_keys, key=lambda x: abs(x - humidity))
-        
-        score, emoji = comfort_data.get(closest_temp, {}).get(closest_hum, (3, "❓"))
-        comfort_text = t[f'comfort_{score}']
-        return comfort_text, score, emoji
+        # Comfort classificatie op basis van Humidex ranges
+        # Bron: Environment Canada Humidex schaal
+        if humidex < 20:
+            return t['comfort_0'], 0, "🥶", humidex  # Te koud
+        elif humidex < 27:
+            return t['comfort_4'], 4, "🙂", humidex  # Comfortabel koel
+        elif humidex < 30:
+            return t['comfort_5'], 5, "😊", humidex  # Comfortabel
+        elif humidex < 35:
+            return t['comfort_6'], 6, "✨", humidex  # Optimaal comfortabel
+        elif humidex < 40:
+            return t['comfort_3'], 3, "😓", humidex  # Enig ongemak
+        elif humidex < 46:
+            return t['comfort_2'], 2, "😟", humidex  # Veel ongemak, vermijd fysieke inspanning
+        elif humidex < 54:
+            return t['comfort_1'], 1, "🔥", humidex  # Gevaarlijk - hittekrampen mogelijk
+        else:
+            return t['comfort_0'], 0, "⚠️", humidex  # Heatstroke dreigend
     
     conn = sqlite3.connect(DB_FILE)
     
@@ -507,10 +667,298 @@ def update_graph(n, time_range_minutes, relayout_data, lang, stored_relayout):
         uirevision='constant'  # Behoud UI state (zoom/pan) tussen updates
     )
     
-    # Bepaal comfort level
-    comfort_text, comfort_score, comfort_icon = get_comfort_level(latest_temp, latest_humidity)
+    # Bepaal comfort level (retourneert nu ook humidex)
+    comfort_text, comfort_score, comfort_icon, humidex = get_comfort_level(latest_temp, latest_humidity)
     
     return fig, f"📊 {total_count} {t['measurements']}", f"{latest_temp:.1f} °C", f"{latest_humidity:.1f} %", f"{latest_dewpoint:.1f} °C", f"{latest_abs_humidity:.1f} g/m³", comfort_text, str(comfort_score), comfort_icon, stored_relayout
+
+# Callback voor psychrometric chart
+@app.callback(
+    Output('psychrometric-chart', 'figure'),
+    [Input('graph-update', 'n_intervals')],
+    [State('selected-language', 'data')]
+)
+def update_psychrometric_chart(n, lang):
+    """Update psychrometrisch diagram met actuele meetwaarden"""
+    if lang is None:
+        lang = 'nl'
+    
+    # Haal laatste meting op uit database
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        query = 'SELECT temperature, humidity FROM measurements ORDER BY timestamp DESC LIMIT 1'
+        df = pd.read_sql_query(query, conn)
+        conn.close()
+        
+        if not df.empty:
+            current_temp = df['temperature'].iloc[0]
+            current_rh = df['humidity'].iloc[0]
+            return create_psychrometric_chart(current_temp, current_rh, lang)
+        else:
+            # Geen data beschikbaar - toon leeg diagram
+            return create_psychrometric_chart(None, None, lang)
+    except Exception as e:
+        print(f"Fout bij updaten psychrometric chart: {e}")
+        return create_psychrometric_chart(None, None, lang)
+
+# Callback voor ophalen historische data bij range selectie
+@app.callback(
+    [Output('historical-data-store', 'data'),
+     Output('historical-time-slider', 'min'),
+     Output('historical-time-slider', 'max'),
+     Output('historical-time-slider', 'value'),
+     Output('historical-time-slider', 'marks'),
+     Output('slider-container', 'style')],
+    [Input('historical-date-range', 'start_date'),
+     Input('historical-date-range', 'end_date')],
+    [State('selected-language', 'data')]
+)
+def load_historical_data(start_date, end_date, lang):
+    """Laad historische data voor geselecteerde range"""
+    if lang is None:
+        lang = 'nl'
+    
+    t = TRANSLATIONS[lang]
+    
+    # Als geen range geselecteerd, verberg slider
+    if start_date is None or end_date is None:
+        return None, 0, 100, 0, {}, {'display': 'none'}
+    
+    try:
+        # Converteer datums naar datetime
+        start_dt = pd.to_datetime(start_date).replace(hour=0, minute=0, second=0)
+        end_dt = pd.to_datetime(end_date).replace(hour=23, minute=59, second=59)
+        
+        # Haal data op uit database
+        conn = sqlite3.connect(DB_FILE)
+        query = '''
+            SELECT timestamp, temperature, humidity 
+            FROM measurements 
+            WHERE timestamp >= ? AND timestamp <= ?
+            ORDER BY timestamp
+        '''
+        df = pd.read_sql_query(query, conn, params=(start_dt.isoformat(), end_dt.isoformat()))
+        conn.close()
+        
+        if df.empty:
+            return None, 0, 100, 0, {}, {'display': 'none'}
+        
+        # Converteer timestamp kolom
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        
+        # Maak slider marks (toon max 10 labels)
+        n_points = len(df)
+        if n_points <= 10:
+            mark_indices = list(range(n_points))
+        else:
+            mark_indices = [int(i * n_points / 10) for i in range(11)]
+        
+        marks = {}
+        for idx in mark_indices:
+            if idx < n_points:
+                marks[idx] = df['timestamp'].iloc[idx].strftime('%d-%m %H:%M')
+        
+        # Sla data op in store (converteer naar dict voor JSON serialization)
+        data_dict = {
+            'timestamps': df['timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
+            'temperatures': df['temperature'].tolist(),
+            'humidities': df['humidity'].tolist()
+        }
+        
+        return data_dict, 0, n_points - 1, 0, marks, {'display': 'block'}
+        
+    except Exception as e:
+        print(f"Fout bij laden historische data: {e}")
+        return None, 0, 100, 0, {}, {'display': 'none'}
+
+# Callback voor het updaten van timestamp display en psychrometric chart bij slider beweging
+@app.callback(
+    [Output('slider-timestamp-display', 'children'),
+     Output('psychrometric-chart', 'figure', allow_duplicate=True)],
+    [Input('historical-time-slider', 'value')],
+    [State('historical-data-store', 'data'),
+     State('selected-language', 'data')],
+    prevent_initial_call=True
+)
+def update_historical_view(slider_value, stored_data, lang):
+    """Update psychrometric chart met historische data punt"""
+    if lang is None:
+        lang = 'nl'
+    
+    t = TRANSLATIONS[lang]
+    
+    # Check of er data is
+    if stored_data is None or slider_value is None:
+        return t['no_data_in_range'], create_psychrometric_chart(None, None, lang)
+    
+    try:
+        # Haal data op uit store
+        timestamps = stored_data['timestamps']
+        temperatures = stored_data['temperatures']
+        humidities = stored_data['humidities']
+        
+        # Valideer slider waarde
+        if slider_value < 0 or slider_value >= len(timestamps):
+            return t['no_data_in_range'], create_psychrometric_chart(None, None, lang)
+        
+        # Haal geselecteerd datapunt op
+        selected_timestamp = timestamps[slider_value]
+        selected_temp = temperatures[slider_value]
+        selected_humidity = humidities[slider_value]
+        
+        # Format timestamp voor display
+        dt = pd.to_datetime(selected_timestamp)
+        timestamp_display = f"📅 {dt.strftime('%d-%m-%Y %H:%M:%S')}"
+        
+        # Creëer aangepast psychrometric chart met historisch punt
+        fig = create_psychrometric_chart_historical(selected_temp, selected_humidity, lang, t['historical_condition'])
+        
+        return timestamp_display, fig
+        
+    except Exception as e:
+        print(f"Fout bij updaten historische view: {e}")
+        return t['no_data_in_range'], create_psychrometric_chart(None, None, lang)
+
+def create_psychrometric_chart_historical(current_temp, current_rh, lang='nl', label='Historische toestand'):
+    """Genereer psychrometrisch diagram met aangepaste label voor historisch punt"""
+    t = TRANSLATIONS[lang]
+    
+    # Temperatuur range voor het diagram (0-40°C)
+    temp_range = np.linspace(0, 40, 200)
+    
+    # Creëer figure
+    fig = go.Figure()
+    
+    # Teken verzadigingslijn (100% RH)
+    sat_humidity_ratio = []
+    for temp in temp_range:
+        pws = 611.2 * np.exp(17.62 * temp / (243.12 + temp))
+        ws = 0.622 * pws / (101325 - pws)
+        sat_humidity_ratio.append(ws * 1000)
+    
+    fig.add_trace(go.Scatter(
+        x=temp_range,
+        y=sat_humidity_ratio,
+        mode='lines',
+        name='100% RH',
+        line=dict(color='#3498db', width=3),
+        showlegend=True
+    ))
+    
+    # Teken RH lijnen (10%, 20%, ..., 90%)
+    rh_levels = [10, 20, 30, 40, 50, 60, 70, 80, 90]
+    colors = ['#ecf0f1', '#d5dbdb', '#bdc3c7', '#95a5a6', '#7f8c8d', '#5d6d7e', '#34495e', '#2c3e50', '#1c2833']
+    
+    for rh, color in zip(rh_levels, colors):
+        humidity_ratio = []
+        for temp in temp_range:
+            pws = 611.2 * np.exp(17.62 * temp / (243.12 + temp))
+            pw = pws * (rh / 100.0)
+            if pw >= 101325:
+                humidity_ratio.append(None)
+            else:
+                w = 0.622 * pw / (101325 - pw)
+                humidity_ratio.append(w * 1000)
+        
+        fig.add_trace(go.Scatter(
+            x=temp_range,
+            y=humidity_ratio,
+            mode='lines',
+            name=f'{rh}% RH',
+            line=dict(color=color, width=1, dash='dash'),
+            showlegend=False,
+            hovertemplate=f'{rh}% RH<br>T: %{{x:.1f}}°C<br>ω: %{{y:.1f}} g/kg<extra></extra>'
+        ))
+    
+    # Comfortzone (typisch 20-26°C en 30-60% RH)
+    comfort_temp_range = np.linspace(20, 26, 50)
+    
+    comfort_lower = []
+    for temp in comfort_temp_range:
+        pws = 611.2 * np.exp(17.62 * temp / (243.12 + temp))
+        pw = pws * 0.30
+        w = 0.622 * pw / (101325 - pw)
+        comfort_lower.append(w * 1000)
+    
+    comfort_upper = []
+    for temp in comfort_temp_range:
+        pws = 611.2 * np.exp(17.62 * temp / (243.12 + temp))
+        pw = pws * 0.60
+        w = 0.622 * pw / (101325 - pw)
+        comfort_upper.append(w * 1000)
+    
+    fig.add_trace(go.Scatter(
+        x=list(comfort_temp_range) + list(comfort_temp_range[::-1]),
+        y=comfort_lower + comfort_upper[::-1],
+        fill='toself',
+        fillcolor='rgba(46, 204, 113, 0.2)',
+        line=dict(width=0),
+        name=t['comfort_zone'],
+        showlegend=True,
+        hoverinfo='skip'
+    ))
+    
+    # Bereken en markeer punt
+    if current_temp is not None and current_rh is not None:
+        pws_current = 611.2 * np.exp(17.62 * current_temp / (243.12 + current_temp))
+        pw_current = pws_current * (current_rh / 100.0)
+        w_current = 0.622 * pw_current / (101325 - pw_current)
+        w_current_g_kg = w_current * 1000
+        
+        fig.add_trace(go.Scatter(
+            x=[current_temp],
+            y=[w_current_g_kg],
+            mode='markers+text',
+            name=label,
+            marker=dict(
+                size=15,
+                color='#e74c3c',
+                symbol='star',
+                line=dict(width=2, color='white')
+            ),
+            text=[f"{current_temp:.1f}°C<br>{current_rh:.0f}%"],
+            textposition='top center',
+            textfont=dict(size=12, color='#e74c3c', family='Arial Black'),
+            showlegend=True,
+            hovertemplate=f'{label}<br>T: {current_temp:.1f}°C<br>RH: {current_rh:.0f}%<br>ω: {w_current_g_kg:.1f} g/kg<extra></extra>'
+        ))
+    
+    # Layout
+    fig.update_layout(
+        title={
+            'text': f"📊 {t['psychrometric_chart']}",
+            'x': 0.5,
+            'xanchor': 'center',
+            'font': {'size': 20, 'color': '#2c3e50', 'family': 'Arial Black'}
+        },
+        xaxis_title=t['dry_bulb_temp'],
+        yaxis_title='Vochtigheidsratio ω (g water / kg droge lucht)',
+        xaxis=dict(
+            range=[0, 40],
+            showgrid=True,
+            gridcolor='rgba(0,0,0,0.1)',
+            dtick=5
+        ),
+        yaxis=dict(
+            range=[0, 25],
+            showgrid=True,
+            gridcolor='rgba(0,0,0,0.1)',
+            dtick=5
+        ),
+        height=600,
+        plot_bgcolor='rgba(255,255,255,1)',
+        paper_bgcolor='white',
+        hovermode='closest',
+        legend=dict(
+            x=0.02,
+            y=0.98,
+            bgcolor='rgba(255,255,255,0.9)',
+            bordercolor='#2c3e50',
+            borderwidth=1
+        )
+    )
+    
+    return fig
 
 if __name__ == '__main__':
     # Applicatie configuratie uit environment

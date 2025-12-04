@@ -290,7 +290,82 @@ def create_layout():
             'background': 'white',
             'borderRadius': '15px',
             'boxShadow': '0 4px 6px rgba(0,0,0,0.1)'
-        })
+        }),
+        
+        # Psychrometric Chart (Mollier Diagram)
+        html.Div([
+            dcc.Graph(
+                id='psychrometric-chart',
+                config={'displayModeBar': True, 'displaylogo': False}
+            )
+        ], style={
+            'marginTop': '30px',
+            'padding': '20px',
+            'background': 'white',
+            'borderRadius': '15px',
+            'boxShadow': '0 4px 6px rgba(0,0,0,0.1)'
+        }),
+        
+        # Historical Data Replay Controls
+        html.Div([
+            html.H3(id='label-historical-replay', children='📜 Historische Data Analyse', style={
+                'color': '#2c3e50',
+                'marginBottom': '20px',
+                'fontFamily': 'Arial Black'
+            }),
+            
+            html.Div([
+                html.Label(id='label-select-range', children='Selecteer datumbereik:', style={
+                    'fontSize': '16px',
+                    'fontWeight': 'bold',
+                    'color': '#2c3e50',
+                    'marginBottom': '10px',
+                    'display': 'block'
+                }),
+                dcc.DatePickerRange(
+                    id='historical-date-range',
+                    display_format='DD-MM-YYYY',
+                    start_date_placeholder_text='Startdatum',
+                    end_date_placeholder_text='Einddatum',
+                    style={'marginBottom': '20px'}
+                )
+            ], style={'marginBottom': '30px'}),
+            
+            html.Div([
+                html.Label(id='label-time-slider', children='Tijdstip:', style={
+                    'fontSize': '16px',
+                    'fontWeight': 'bold',
+                    'color': '#2c3e50',
+                    'marginBottom': '10px',
+                    'display': 'block'
+                }),
+                html.Div(id='slider-timestamp-display', style={
+                    'fontSize': '18px',
+                    'fontWeight': 'bold',
+                    'color': '#3498db',
+                    'marginBottom': '10px',
+                    'textAlign': 'center'
+                }),
+                dcc.Slider(
+                    id='historical-time-slider',
+                    min=0,
+                    max=100,
+                    step=1,
+                    value=0,
+                    marks={},
+                    tooltip={'placement': 'bottom', 'always_visible': False}
+                )
+            ], id='slider-container', style={'display': 'none'})
+        ], style={
+            'marginTop': '30px',
+            'padding': '20px',
+            'background': 'white',
+            'borderRadius': '15px',
+            'boxShadow': '0 4px 6px rgba(0,0,0,0.1)'
+        }),
+        
+        # Store voor historische data
+        dcc.Store(id='historical-data-store')
     ], style={
         'maxWidth': '1400px',
         'margin': '0 auto',
