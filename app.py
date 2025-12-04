@@ -21,61 +21,138 @@ load_dotenv()
 
 # Database configuratie
 DB_FILE = os.getenv('DATABASE_FILE', 'src/modbus_sensor_data.db')
+DATA_RETENTION_DAYS = int(os.getenv('DATA_RETENTION_DAYS', '0'))  # 0 = oneindig, anders aantal dagen
+
+if DATA_RETENTION_DAYS < 0:
+    print(f"Waarschuwing: DATA_RETENTION_DAYS kan niet negatief zijn ({DATA_RETENTION_DAYS}), gebruik 0 voor oneindig")
+    DATA_RETENTION_DAYS = 0
 
 def init_database():
     """Initialiseer database met measurements tabel"""
-    # Zorg dat de src directory bestaat
-    db_dir = os.path.dirname(DB_FILE)
-    if db_dir and not os.path.exists(db_dir):
-        os.makedirs(db_dir)
+    try:
+        # Zorg dat de src directory bestaat
+        db_dir = os.path.dirname(DB_FILE)
+        if db_dir and not os.path.exists(db_dir):
+            os.makedirs(db_dir)
+        
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS measurements (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp DATETIME NOT NULL,
+                temperature REAL NOT NULL,
+                humidity REAL NOT NULL,
+                dewpoint REAL,
+                absolute_humidity REAL
+            )
+        ''')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_timestamp ON measurements(timestamp)')
+        conn.commit()
+        conn.close()
+        print(f"Database geïnitialiseerd: {DB_FILE}")
+        if DATA_RETENTION_DAYS > 0:
+            print(f"Data retentie actief: {DATA_RETENTION_DAYS} dagen")
+        else:
+            print("Data retentie: oneindig (alle data wordt bewaard)")
+    except Exception as e:
+        print(f"FOUT: Kan database niet initialiseren: {e}")
+        print("Controleer schrijfrechten en of het bestand niet corrupt is.")
+        raise
+
+def cleanup_old_data():
+    """Verwijder oude data op basis van retention policy"""
+    if DATA_RETENTION_DAYS == 0:
+        return  # Geen cleanup als retentie oneindig is
     
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS measurements (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp DATETIME NOT NULL,
-            temperature REAL NOT NULL,
-            humidity REAL NOT NULL,
-            dewpoint REAL,
-            absolute_humidity REAL
-        )
-    ''')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_timestamp ON measurements(timestamp)')
-    conn.commit()
-    conn.close()
+    try:
+        cutoff_date = datetime.now() - timedelta(days=DATA_RETENTION_DAYS)
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        
+        # Tel hoeveel records verwijderd worden
+        cursor.execute('SELECT COUNT(*) FROM measurements WHERE timestamp < ?', (cutoff_date.isoformat(),))
+        count_to_delete = cursor.fetchone()[0]
+        
+        if count_to_delete > 0:
+            cursor.execute('DELETE FROM measurements WHERE timestamp < ?', (cutoff_date.isoformat(),))
+            conn.commit()
+            print(f"Data cleanup: {count_to_delete} oude metingen verwijderd (ouder dan {DATA_RETENTION_DAYS} dagen)")
+        
+        conn.close()
+    except Exception as e:
+        print(f"Waarschuwing: Data cleanup gefaald: {e}")
 
 init_database()
 
-# Modbus configuratie uit environment
-MODBUS_PORT = os.getenv('MODBUS_PORT', 'COM11')
-MODBUS_SLAVE_ID = int(os.getenv('MODBUS_SLAVE_ID', '1'))
-MODBUS_BAUDRATE = int(os.getenv('MODBUS_BAUDRATE', '9600'))
-MODBUS_BYTESIZE = int(os.getenv('MODBUS_BYTESIZE', '8'))
-MODBUS_PARITY = os.getenv('MODBUS_PARITY', 'N')
-MODBUS_STOPBITS = int(os.getenv('MODBUS_STOPBITS', '1'))
-MODBUS_TIMEOUT = int(os.getenv('MODBUS_TIMEOUT', '1'))
-MODBUS_FUNCTION_CODE = int(os.getenv('MODBUS_FUNCTION_CODE', '4'))
-MODBUS_REGISTER_TEMP = int(os.getenv('MODBUS_REGISTER_TEMP', '1'))
-MODBUS_REGISTER_HUMIDITY = int(os.getenv('MODBUS_REGISTER_HUMIDITY', '2'))
+# Modbus configuratie uit environment met validatie
+try:
+    MODBUS_PORT = os.getenv('MODBUS_PORT', 'COM11')
+    MODBUS_SLAVE_ID = int(os.getenv('MODBUS_SLAVE_ID', '1'))
+    MODBUS_BAUDRATE = int(os.getenv('MODBUS_BAUDRATE', '9600'))
+    MODBUS_BYTESIZE = int(os.getenv('MODBUS_BYTESIZE', '8'))
+    MODBUS_PARITY = os.getenv('MODBUS_PARITY', 'N')
+    MODBUS_STOPBITS = int(os.getenv('MODBUS_STOPBITS', '1'))
+    MODBUS_TIMEOUT = int(os.getenv('MODBUS_TIMEOUT', '1'))
+    MODBUS_FUNCTION_CODE = int(os.getenv('MODBUS_FUNCTION_CODE', '4'))
+    MODBUS_REGISTER_TEMP = int(os.getenv('MODBUS_REGISTER_TEMP', '1'))
+    MODBUS_REGISTER_HUMIDITY = int(os.getenv('MODBUS_REGISTER_HUMIDITY', '2'))
+    
+    # Valideer configuratie
+    if MODBUS_SLAVE_ID < 1 or MODBUS_SLAVE_ID > 247:
+        raise ValueError(f"MODBUS_SLAVE_ID moet tussen 1-247 zijn, kreeg: {MODBUS_SLAVE_ID}")
+    if MODBUS_BAUDRATE not in [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]:
+        print(f"Waarschuwing: Ongebruikelijke baudrate: {MODBUS_BAUDRATE}")
+    if MODBUS_PARITY not in ['N', 'E', 'O']:
+        raise ValueError(f"MODBUS_PARITY moet N, E of O zijn, kreeg: {MODBUS_PARITY}")
+    if MODBUS_TIMEOUT < 0:
+        raise ValueError(f"MODBUS_TIMEOUT moet positief zijn, kreeg: {MODBUS_TIMEOUT}")
+except ValueError as e:
+    print(f"FOUT in .env configuratie: {e}")
+    raise
 
 # Configuratie van Modbus RTU apparaat
+# Mapping voor parity settings
+PARITY_MAP = {
+    'N': minimalmodbus.serial.PARITY_NONE,
+    'E': minimalmodbus.serial.PARITY_EVEN,
+    'O': minimalmodbus.serial.PARITY_ODD
+}
+
 instrument = minimalmodbus.Instrument(MODBUS_PORT, MODBUS_SLAVE_ID)
 instrument.serial.baudrate = MODBUS_BAUDRATE
 instrument.serial.bytesize = MODBUS_BYTESIZE
-instrument.serial.parity = minimalmodbus.serial.PARITY_NONE if MODBUS_PARITY == 'N' else MODBUS_PARITY
+instrument.serial.parity = PARITY_MAP.get(MODBUS_PARITY, minimalmodbus.serial.PARITY_NONE)
 instrument.serial.stopbits = MODBUS_STOPBITS
 instrument.serial.timeout = MODBUS_TIMEOUT
 
 def read_modbus_data():
     """Thread functie om Modbus data te lezen en op te slaan"""
+    last_cleanup = datetime.now()
+    
     while True:
         try:
+            # Voer cleanup uit elke 24 uur
+            if DATA_RETENTION_DAYS > 0 and (datetime.now() - last_cleanup).total_seconds() >= 86400:
+                cleanup_old_data()
+                last_cleanup = datetime.now()
+            
             register_temp = instrument.read_register(MODBUS_REGISTER_TEMP, 0, MODBUS_FUNCTION_CODE)
             register_humidity = instrument.read_register(MODBUS_REGISTER_HUMIDITY, 0, MODBUS_FUNCTION_CODE)
             
             temperature = register_temp / 10
             humidity = register_humidity / 10
+            
+            # Valideer sensor data
+            if not (-50 <= temperature <= 100):
+                print(f"Waarschuwing: Ongeldige temperatuur {temperature}°C - meting overgeslagen")
+                time.sleep(1)
+                continue
+            
+            if not (0 <= humidity <= 100):
+                print(f"Waarschuwing: Ongeldige luchtvochtigheid {humidity}% - meting overgeslagen")
+                time.sleep(1)
+                continue
             
             # Bereken dauwpunt
             dewpoint = temperature - ((100 - humidity) / 5.0)
@@ -192,12 +269,15 @@ def update_language(lang):
      Output('current-abs-humidity', 'children'),
      Output('comfort-level', 'children'),
      Output('comfort-score', 'children'),
-     Output('comfort-icon', 'children')],
+     Output('comfort-icon', 'children'),
+     Output('graph-relayout-data', 'data')],
     [Input('graph-update', 'n_intervals'),
-     Input('time-range-dropdown', 'value')],
-    [State('selected-language', 'data')]
+     Input('time-range-dropdown', 'value'),
+     Input('live-graph', 'relayoutData')],
+    [State('selected-language', 'data'),
+     State('graph-relayout-data', 'data')]
 )
-def update_graph(n, time_range_minutes, lang):
+def update_graph(n, time_range_minutes, relayout_data, lang, stored_relayout):
     """Update grafieken en metingen op basis van tijdsbereik"""
     if lang is None:
         lang = 'nl'
@@ -206,6 +286,14 @@ def update_graph(n, time_range_minutes, lang):
     
     def get_comfort_level(temp, humidity):
         """Bepaal comfort level op basis van temperatuur en luchtvochtigheid"""
+        # Boundary check voor extreme waarden
+        if temp < 10:
+            return t['comfort_0'], 0, "🥶"
+        if temp > 35:
+            return t['comfort_0'], 0, "🔥"
+        if humidity < 20 or humidity > 80:
+            return t['comfort_1'], 1, "⚠️"
+        
         # Definieer de comfort matrix (score en emoji mapping)
         comfort_data = {
             16: {30: (2, "❄️"), 40: (2, "❄️"), 50: (3, "🌧️"), 60: (3, "🌧️"), 70: (2, "❄️")},
@@ -253,10 +341,19 @@ def update_graph(n, time_range_minutes, lang):
     
     conn.close()
     
-    if df.empty:
-        return go.Figure(), f"{total_count} {t['measurements']}", "-- °C", "-- %", "-- °C", "-- g/m³", t['no_data'], "--", "❓"
+    # Update stored relayout data als er nieuwe zoom/pan data is
+    if relayout_data and isinstance(relayout_data, dict) and any(key.startswith(('xaxis', 'yaxis')) for key in relayout_data.keys()):
+        stored_relayout = relayout_data
     
-    df['timestamp'] = pd.to_datetime(df['timestamp'], format='ISO8601')
+    if df.empty:
+        return go.Figure(), f"{total_count} {t['measurements']}", "-- °C", "-- %", "-- °C", "-- g/m³", t['no_data'], "--", "❓", stored_relayout
+    
+    try:
+        df['timestamp'] = pd.to_datetime(df['timestamp'], format='ISO8601')
+    except Exception:
+        # Fallback voor andere timestamp formaten
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+    
     df['timestamp_formatted'] = df['timestamp'].dt.strftime('%d-%m-%Y %H:%M:%S')
     
     # Haal laatste waarden op
@@ -326,7 +423,8 @@ def update_graph(n, time_range_minutes, lang):
     if 'absolute_humidity' in df.columns:
         abs_hum_data = df['absolute_humidity']
     else:
-        abs_hum_data = (6.112 * (df['temperature'] + 243.5).apply(lambda temp: math.exp((17.67 * (temp - 243.5)) / temp)) * df['humidity'] * 2.1674) / (273.15 + df['temperature'])
+        # Correcte formule voor absolute vochtigheid
+        abs_hum_data = (6.112 * df['temperature'].apply(lambda temp: math.exp((17.67 * temp) / (temp + 243.5))) * df['humidity'] * 2.1674) / (273.15 + df['temperature'])
     
     fig.add_trace(
         go.Scatter(
@@ -343,6 +441,19 @@ def update_graph(n, time_range_minutes, lang):
         row=4, col=1
     )
     
+    # Bereken dynamische Y-axis ranges met padding
+    temp_min, temp_max = df['temperature'].min(), df['temperature'].max()
+    temp_range = [max(0, temp_min - 5), temp_max + 5]
+    
+    hum_range = [0, 100]  # Humidity blijft altijd 0-100%
+    
+    dewpoint_data = df['dewpoint'] if 'dewpoint' in df.columns else df['temperature'] - ((100 - df['humidity']) / 5.0)
+    dew_min, dew_max = dewpoint_data.min(), dewpoint_data.max()
+    dew_range = [max(0, dew_min - 5), dew_max + 5]
+    
+    abs_min, abs_max = abs_hum_data.min(), abs_hum_data.max()
+    abs_range = [max(0, abs_min - 2), abs_max + 2]
+    
     fig.update_xaxes(
         title_text=t['time'], 
         row=4, col=1,
@@ -354,28 +465,28 @@ def update_graph(n, time_range_minutes, lang):
         row=1, col=1,
         showgrid=True,
         gridcolor='rgba(0,0,0,0.05)',
-        range=[0, 50]
+        range=temp_range
     )
     fig.update_yaxes(
         title_text=f"{t['humidity']} (%)", 
         row=2, col=1,
         showgrid=True,
         gridcolor='rgba(0,0,0,0.05)',
-        range=[0, 100]
+        range=hum_range
     )
     fig.update_yaxes(
         title_text=f"{t['dewpoint']} (°C)", 
         row=3, col=1,
         showgrid=True,
         gridcolor='rgba(0,0,0,0.05)',
-        range=[0, 50]
+        range=dew_range
     )
     fig.update_yaxes(
         title_text=f"{t['abs_humidity']} (g/m³)", 
         row=4, col=1,
         showgrid=True,
         gridcolor='rgba(0,0,0,0.05)',
-        range=[0, 25]
+        range=abs_range
     )
     
     fig.update_layout(
@@ -392,19 +503,26 @@ def update_graph(n, time_range_minutes, lang):
             font_color="#2c3e50",
             bordercolor="#2c3e50",
             align="left"
-        )
+        ),
+        uirevision='constant'  # Behoud UI state (zoom/pan) tussen updates
     )
     
     # Bepaal comfort level
     comfort_text, comfort_score, comfort_icon = get_comfort_level(latest_temp, latest_humidity)
     
-    return fig, f"📊 {total_count} {t['measurements']}", f"{latest_temp:.1f} °C", f"{latest_humidity:.1f} %", f"{latest_dewpoint:.1f} °C", f"{latest_abs_humidity:.1f} g/m³", comfort_text, str(comfort_score), comfort_icon
+    return fig, f"📊 {total_count} {t['measurements']}", f"{latest_temp:.1f} °C", f"{latest_humidity:.1f} %", f"{latest_dewpoint:.1f} °C", f"{latest_abs_humidity:.1f} g/m³", comfort_text, str(comfort_score), comfort_icon, stored_relayout
 
 if __name__ == '__main__':
     # Applicatie configuratie uit environment
     APP_HOST = os.getenv('APP_HOST', '127.0.0.1')
     APP_PORT = int(os.getenv('APP_PORT', '8050'))
     APP_DEBUG = os.getenv('APP_DEBUG', 'False').lower() == 'true'
+    
+    # Valideer poort
+    if not (1 <= APP_PORT <= 65535):
+        print(f"FOUT: APP_PORT moet tussen 1-65535 zijn, kreeg: {APP_PORT}")
+        print("Gebruik default poort 8050")
+        APP_PORT = 8050
     
     print(f"Dashboard gestart op http://{APP_HOST}:{APP_PORT}/")
     app.run(debug=APP_DEBUG, host=APP_HOST, port=APP_PORT)

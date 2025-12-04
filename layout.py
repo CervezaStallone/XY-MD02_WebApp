@@ -69,6 +69,8 @@ def create_layout():
     return html.Div([
         # Store voor geselecteerde taal
         dcc.Store(id='selected-language', data='nl'),
+        # Store voor grafiek zoom/relayout state
+        dcc.Store(id='graph-relayout-data', data={}),
         
         # Header met taalkeuze
         html.Div([

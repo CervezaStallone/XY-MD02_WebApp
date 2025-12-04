@@ -12,6 +12,7 @@ Een professionele real-time klimaatmonitoring dashboard applicatie voor de XY-MD
 
 - **Real-time monitoring**: Live grafieken met automatische updates (1 seconde interval)
 - **Historische data**: Persistente opslag in SQLite database met tijdsfilters (1 min tot 6 maanden)
+- **Data retentie**: Configureerbare automatische cleanup van oude data
 - **Meerdere metingen**:
   - Temperatuur (°C)
   - Luchtvochtigheid (%)
@@ -20,6 +21,8 @@ Een professionele real-time klimaatmonitoring dashboard applicatie voor de XY-MD
   - Behagelijkheidscore (0-6)
 - **Meertalig**: Nederlands en Engels, eenvoudig uitbreidbaar
 - **Professionele UI**: Modern dashboard met gradient header en card-based layout
+- **Zoom behoud**: Inzoomen op grafieken blijft behouden tijdens live updates
+- **Robuust**: Uitgebreide input validatie en error handling
 - **Configureerbaar**: Alle settings via `.env` bestand
 
 ### 📋 Requirements
@@ -129,6 +132,7 @@ Modbus Graph/
 #### Database Settings
 
 - `DATABASE_FILE`: Pad naar de SQLite database file
+- `DATA_RETENTION_DAYS`: Data retentie in dagen (0 = oneindig, anders aantal dagen dat data bewaard blijft)
 
 #### Application Settings
 
@@ -256,6 +260,7 @@ A professional real-time climate monitoring dashboard application for the XY-MD0
 
 - **Real-time monitoring**: Live charts with automatic updates (1 second interval)
 - **Historical data**: Persistent storage in SQLite database with time filters (1 min to 6 months)
+- **Data retention**: Configurable automatic cleanup of old data
 - **Multiple measurements**:
   - Temperature (°C)
   - Humidity (%)
@@ -264,6 +269,8 @@ A professional real-time climate monitoring dashboard application for the XY-MD0
   - Comfort Score (0-6)
 - **Multilingual**: Dutch and English, easily expandable
 - **Professional UI**: Modern dashboard with gradient header and card-based layout
+- **Zoom persistence**: Graph zoom stays preserved during live updates
+- **Robust**: Extensive input validation and error handling
 - **Configurable**: All settings via `.env` file
 
 ### 📋 Requirements
@@ -373,6 +380,7 @@ Modbus Graph/
 #### Database Settings
 
 - `DATABASE_FILE`: Path to the SQLite database file
+- `DATA_RETENTION_DAYS`: Data retention in days (0 = infinite, otherwise number of days to keep data)
 
 #### Application Settings
 
