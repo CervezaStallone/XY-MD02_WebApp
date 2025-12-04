@@ -33,15 +33,15 @@ Een professionele real-time klimaatmonitoring dashboard applicatie voor de XY-MD
 ### 📸 Screenshots
 
 #### Live Grafieken
-![Live Grafieken](img/graph.png)
+![Live Grafieken](img/NL_graph.png)
 *Real-time monitoring van temperatuur, luchtvochtigheid, dauwpunt en absolute vochtigheid met automatische updates*
 
 #### Psychrometrisch Diagram (Mollier)
-![Mollier Diagram](img/mollier_diagram.png)
+![Mollier Diagram](img/NL_mollier_diagram.png)
 *Interactief Mollier diagram met verzadigingslijn, RH curves, comfortzone en live indicator*
 
 #### Historische Data Selectie
-![Date Picker](img/date_picker.png)
+![Date Picker](img/NL_date_picker.png)
 *Modal met preset knoppen en custom datum/tijd selectie voor historische data analyse*
 
 ### 📋 Requirements
@@ -376,15 +376,15 @@ A professional real-time climate monitoring dashboard application for the XY-MD0
 ### 📸 Screenshots
 
 #### Live Graphs
-![Live Graphs](img/graph.png)
+![Live Graphs](img/EN_graph.png)
 *Real-time monitoring of temperature, humidity, dew point and absolute humidity with automatic updates*
 
 #### Psychrometric Chart (Mollier)
-![Mollier Diagram](img/mollier_diagram.png)
+![Mollier Diagram](img/EN_mollier_diagram.png)
 *Interactive Mollier diagram with saturation line, RH curves, comfort zone and live indicator*
 
 #### Historical Data Selection
-![Date Picker](img/date_picker.png)
+![Date Picker](img/EN_date_picker.png)
 *Modal with preset buttons and custom date/time picker for historical data analysis*
 
 ### 📋 Requirements
