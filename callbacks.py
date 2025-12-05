@@ -180,8 +180,8 @@ def register_callbacks(app):
         if df.empty:
             return go.Figure(), f"{total_count} {t['measurements']}", "-- °C", "-- %", "-- °C", "-- g/m³", t['no_data'], "--", "❓", stored_relayout
         
-        # Converteer integer timestamps naar datetime objecten
-        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s')
+        # Converteer integer timestamps naar datetime objecten (lokale tijd)
+        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s').dt.tz_localize('UTC').dt.tz_convert('Europe/Amsterdam').dt.tz_localize(None)
         
         df['timestamp_formatted'] = df['timestamp'].dt.strftime('%d-%m-%Y %H:%M:%S')
         
@@ -552,8 +552,8 @@ def register_callbacks(app):
             if df.empty:
                 return None, 0, 100, 0, {}, {'display': 'none'}
             
-            # Converteer integer timestamps naar datetime objecten
-            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s')
+            # Converteer integer timestamps naar datetime objecten (lokale tijd)
+            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s').dt.tz_localize('UTC').dt.tz_convert('Europe/Amsterdam').dt.tz_localize(None)
             
             # Bepaal tijdsverschil in minuten
             time_diff_minutes = (end_dt - start_dt).total_seconds() / 60
