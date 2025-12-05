@@ -1,9 +1,4 @@
-﻿"""
-XY-MD02 WebApp - Main Entry Point
-Dash applicatie voor XY-MD02 Modbus temperatuur/vochtigheid sensor
-"""
-
-from dash import Dash
+﻿from dash import Dash
 
 # Import modules
 from database import init_database, cleanup_old_data, DATA_RETENTION_DAYS

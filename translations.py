@@ -1,7 +1,3 @@
-# translations.py
-# Vertaalsysteem voor de Modbus Climate Monitor applicatie
-
-# Metadata voor talen (voor automatische dropdown generatie)
 LANGUAGE_NAMES = {
     'nl': 'NL',
     'en': 'EN',

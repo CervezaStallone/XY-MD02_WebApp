@@ -1,6 +1,3 @@
-# layout.py
-# HTML Layout en styling voor de Modbus Climate Monitor applicatie
-
 import os
 from dash import dcc, html
 from dotenv import load_dotenv
