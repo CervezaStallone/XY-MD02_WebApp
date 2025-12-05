@@ -38,21 +38,23 @@ Thumbs.db
 # Logs
 *.log
 
-# Backup files
-*_old.py
-*.bak
-*.backup
+# Temporary files
+*.tmp
+*.temp
 
 # Jupyter Notebook
 .ipynb_checkpoints
 
 # pytest
 .pytest_cache/
-
-# Tests
-test_app.py
 .coverage
 htmlcov/
+
+# Backup files (generated during development)
+*.backup
+*_old.py
+app.py.backup
+README.md.backup
 
 # mypy
 .mypy_cache/
