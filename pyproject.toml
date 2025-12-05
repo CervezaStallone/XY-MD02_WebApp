@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xy-md02-webapp"
+version = "1.5.3"
+description = "Web-based monitoring dashboard for XY-MD02 Modbus temperature and humidity sensor"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "CervezaStallone"}
+]
+keywords = ["modbus", "sensor", "monitoring", "dashboard", "xy-md02", "temperature", "humidity"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Home Automation",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+    "Topic :: System :: Monitoring",
+]
+
+dependencies = [
+    "dash==2.18.2",
+    "plotly==5.24.1",
+    "pandas==2.2.3",
+    "numpy==2.2.1",
+    "minimalmodbus==2.1.1",
+    "python-dotenv==1.0.1",
+    "pyserial==3.5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/CervezaStallone/XY-MD02_WebApp"
+Repository = "https://github.com/CervezaStallone/XY-MD02_WebApp"
+Issues = "https://github.com/CervezaStallone/XY-MD02_WebApp/issues"
+Changelog = "https://github.com/CervezaStallone/XY-MD02_WebApp/releases"
+
+[tool.setuptools]
+packages = []
+
+[tool.black]
+line-length = 120
+target-version = ['py39', 'py310', 'py311', 'py312', 'py313']
+
+[tool.pytest.ini_options]
+testpaths = ["test_app.py"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
