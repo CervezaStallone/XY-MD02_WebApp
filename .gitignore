@@ -23,6 +23,9 @@ src/*.db
 *.db
 *.sqlite
 *.sqlite3
+# WAL (Write-Ahead Logging) bestanden
+*.db-wal
+*.db-shm
 
 # IDE
 .vscode/
