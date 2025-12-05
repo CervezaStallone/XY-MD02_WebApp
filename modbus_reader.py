@@ -60,6 +60,8 @@ instrument.serial.timeout = MODBUS_TIMEOUT
 
 def read_modbus_data():
     """Thread functie om Modbus data te lezen en op te slaan"""
+    print(f"→ Modbus thread actief - verbinding maken met {MODBUS_PORT}...")
+    
     last_cleanup = datetime.now()
     current_table = get_table_name()
     
@@ -69,7 +71,10 @@ def read_modbus_data():
     cursor.execute('PRAGMA journal_mode=WAL')
     cursor.execute('PRAGMA synchronous=NORMAL')
     
+    print(f"✓ Database connectie OK - schrijven naar tabel: {current_table}")
+    
     # Buffer voor batch inserts (30 metingen = 30 seconden)
+    # Optimalisatie: minder schrijfoperaties = langere levensduur database/storage
     measurement_buffer = []
     BATCH_SIZE = 30
     last_commit_time = time.time()
@@ -175,7 +180,17 @@ def read_modbus_data():
 def start_modbus_thread():
     """Start Modbus reader thread als daemon"""
     import threading
-    modbus_thread = threading.Thread(target=read_modbus_data, daemon=True)
-    modbus_thread.start()
-    print("Modbus reader thread gestart")
-    return modbus_thread
+    
+    # Test eerst of minimalmodbus werkt
+    try:
+        print(f"→ Start Modbus thread (poort: {MODBUS_PORT}, slave: {MODBUS_SLAVE_ID})")
+        modbus_thread = threading.Thread(target=read_modbus_data, daemon=True)
+        modbus_thread.start()
+        print("✓ Modbus reader thread gestart")
+        return modbus_thread
+    except Exception as e:
+        print(f"✗ FOUT bij starten Modbus thread: {e}")
+        print(f"   Type: {type(e).__name__}")
+        print("   Zorg dat je de app start met de virtual environment!")
+        print("   Gebruik: .venv\\Scripts\\python.exe app.py")
+        raise

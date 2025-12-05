@@ -820,7 +820,13 @@ app.py
 
 ### Version History
 
-#### v2.0.0 (December 5, 2025) - Performance & Architecture
+#### v1.5.1 (December 5, 2025) - Stability Fix
+- **Bug Fixes**:
+  - Enhanced Modbus thread startup logging for better diagnostics
+  - Improved error messages when virtual environment not activated
+  - Added connection status indicators to terminal output
+
+#### v1.5.0 (December 5, 2025) - Performance & Architecture
 - **Database Optimizations**:
   - Table-per-day partitioning (measurements_YYYYMMDD)
   - WAL mode for concurrent read/write performance
