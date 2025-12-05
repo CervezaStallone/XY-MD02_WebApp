@@ -2,7 +2,7 @@
 # HTML Layout en styling voor de Modbus Climate Monitor applicatie
 
 from dash import dcc, html
-from translations import LANGUAGE_NAMES
+from translations import LANGUAGE_NAMES, TRANSLATIONS
 
 # Custom HTML template met CSS
 HTML_TEMPLATE = '''
@@ -207,7 +207,23 @@ def create_layout():
                         html.Span(id='label-score', children="Score: ", style={'fontSize': '14px', 'color': '#7f8c8d'}),
                         html.Span(id='comfort-score', style={'fontSize': '20px', 'fontWeight': 'bold', 'color': '#2c3e50'})
                     ]),
-                    html.Div(id='tooltip-content', children=[], className='tooltip-text')
+                    html.Div(id='tooltip-content', children=[
+                        TRANSLATIONS['nl']['score_explanation'] + ":",
+                        html.Br(),
+                        f"0 = {TRANSLATIONS['nl']['comfort_0']}",
+                        html.Br(),
+                        f"1 = {TRANSLATIONS['nl']['comfort_1']}",
+                        html.Br(),
+                        f"2 = {TRANSLATIONS['nl']['comfort_2']}",
+                        html.Br(),
+                        f"3 = {TRANSLATIONS['nl']['comfort_3']}",
+                        html.Br(),
+                        f"4 = {TRANSLATIONS['nl']['comfort_4']}",
+                        html.Br(),
+                        f"5 = {TRANSLATIONS['nl']['comfort_5']}",
+                        html.Br(),
+                        f"6 = {TRANSLATIONS['nl']['comfort_6']}"
+                    ], className='tooltip-text')
                 ], className='tooltip-container', style={
                     'background': 'white',
                     'padding': '20px',

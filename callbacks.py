@@ -1,14 +1,20 @@
 import sqlite3
 import math
+import os
 import pandas as pd
 from datetime import datetime, timedelta
 from dash import callback_context, html, no_update, Input, Output, State
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from dotenv import load_dotenv
 
 from translations import TRANSLATIONS
 from database import get_all_measurement_tables, build_union_query, DB_FILE
 from psychrometric import create_psychrometric_chart, create_psychrometric_chart_historical
+
+# Laad environment variabelen
+load_dotenv()
+TIMEZONE = os.getenv('TIMEZONE', 'Europe/Amsterdam')
 
 
 def register_callbacks(app):
@@ -181,7 +187,7 @@ def register_callbacks(app):
             return go.Figure(), f"{total_count} {t['measurements']}", "-- °C", "-- %", "-- °C", "-- g/m³", t['no_data'], "--", "❓", stored_relayout
         
         # Converteer integer timestamps naar datetime objecten (lokale tijd)
-        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s').dt.tz_localize('UTC').dt.tz_convert('Europe/Amsterdam').dt.tz_localize(None)
+        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s').dt.tz_localize('UTC').dt.tz_convert(TIMEZONE).dt.tz_localize(None)
         
         df['timestamp_formatted'] = df['timestamp'].dt.strftime('%d-%m-%Y %H:%M:%S')
         
@@ -553,7 +559,7 @@ def register_callbacks(app):
                 return None, 0, 100, 0, {}, {'display': 'none'}
             
             # Converteer integer timestamps naar datetime objecten (lokale tijd)
-            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s').dt.tz_localize('UTC').dt.tz_convert('Europe/Amsterdam').dt.tz_localize(None)
+            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s').dt.tz_localize('UTC').dt.tz_convert(TIMEZONE).dt.tz_localize(None)
             
             # Bepaal tijdsverschil in minuten
             time_diff_minutes = (end_dt - start_dt).total_seconds() / 60
