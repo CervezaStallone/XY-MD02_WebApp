@@ -22,7 +22,7 @@ def register_callbacks(app):
     
     @app.callback(
         [Output('selected-language', 'data'),
-         Output('main-title', 'children'),
+         Output('page-title', 'children'),
          Output('label-temperature', 'children'),
          Output('label-humidity', 'children'),
          Output('label-dewpoint', 'children'),
@@ -107,9 +107,9 @@ def register_callbacks(app):
          Output('graph-relayout-data', 'data')],
         [Input('graph-update', 'n_intervals'),
          Input('time-range-dropdown', 'value'),
-         Input('live-graph', 'relayoutData')],
-        [State('selected-language', 'data'),
-         State('graph-relayout-data', 'data')]
+         Input('live-graph', 'relayoutData'),
+         Input('selected-language', 'data')],
+        [State('graph-relayout-data', 'data')]
     )
     def update_graph(n, time_range_minutes, relayout_data, lang, stored_relayout):
         """Update grafieken en metingen op basis van tijdsbereik"""
@@ -350,8 +350,8 @@ def register_callbacks(app):
     # Callback voor psychrometric chart
     @app.callback(
         Output('psychrometric-chart', 'figure'),
-        [Input('graph-update', 'n_intervals')],
-        [State('selected-language', 'data')]
+        [Input('graph-update', 'n_intervals'),
+         Input('selected-language', 'data')]
     )
     def update_psychrometric_chart(n, lang):
         """Update psychrometrisch diagram met actuele meetwaarden"""
@@ -499,8 +499,8 @@ def register_callbacks(app):
          Output('historical-time-slider', 'value'),
          Output('historical-time-slider', 'marks'),
          Output('slider-container', 'style')],
-        [Input('selected-range-value', 'data')],
-        [State('selected-language', 'data')]
+        [Input('selected-range-value', 'data'),
+         Input('selected-language', 'data')]
     )
     def load_historical_data(range_value, lang):
         """Laad historische data voor geselecteerde periode (preset of custom)"""
@@ -619,12 +619,12 @@ def register_callbacks(app):
         [Output('slider-timestamp-display', 'children'),
          Output('psychrometric-chart', 'figure', allow_duplicate=True)],
         [Input('historical-time-slider', 'value'),
-         Input('historical-time-slider', 'drag_value')],
-        [State('historical-data-store', 'data'),
-         State('selected-language', 'data')],
+         Input('historical-time-slider', 'drag_value'),
+         Input('selected-language', 'data')],
+        [State('historical-data-store', 'data')],
         prevent_initial_call=True
     )
-    def update_historical_view(slider_value, drag_value, stored_data, lang):
+    def update_historical_view(slider_value, drag_value, lang, stored_data):
         """Update psychrometric chart met historische data punt - live tijdens slepen"""
         # Gebruik drag_value tijdens het slepen, anders value
         current_value = drag_value if drag_value is not None else slider_value

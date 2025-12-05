@@ -394,49 +394,6 @@ app.py
 #### Port al in gebruik
 - Wijzig `APP_PORT` in `.env` naar een andere poort
 
-### Version History
-
-#### v2.0.0 (December 5, 2025) - Performance & Architecture
-- **Database Optimizations**:
-  - Table-per-day partitioning (measurements_YYYYMMDD)
-  - WAL mode for concurrent read/write performance
-  - Integer epoch timestamps (50% space reduction)
-  - Batch inserts: 30-measurement buffer (97% transaction reduction)
-  - UNION ALL queries over relevant tables
-  - Instant cleanup via DROP TABLE
-  - Connection pooling in Modbus thread
-- **Code Modularization**:
-  - Split 1225-line app.py into 5 focused modules
-  - database.py: 190 lines (partitioning, WAL, queries)
-  - modbus_reader.py: 185 lines (RTU communication, buffering)
-  - psychrometric.py: 317 lines (Mollier diagrams)
-  - callbacks.py: 636 lines (7 Dash callbacks)
-  - app.py: 45 lines (clean entry point)
-- **Performance Results**:
-  - 10-100× faster write performance
-  - 50% storage space reduction
-  - Sub-millisecond cleanup operations
-  - Linear scaling for multi-year operation
-  - Queries only scan relevant day-tables
-- **Testing**: All 15 automated tests passing
-
-#### v1.1.0 (December 4, 2025) - Features
-- Humidex calculation (Environment Canada standard)
-- Psychrometric chart (Mollier diagram)
-- Historical data replay with modal interface
-- 11 preset buttons + custom date/time picker
-- Live slider updates
-- Automated test suite (15 tests)
-- Improved UX and bug fixes
-
-#### v1.0.0 (Initial Release)
-- Real-time monitoring with live graphs
-- SQLite database with persistent storage
-- Multi-language support (NL/EN)
-- Temperature, humidity, dewpoint, absolute humidity measurements
-- Configurable data retention
-- Professional dashboard UI
-
 ### Licentie
 
 Dit project is open source en beschikbaar onder de [MIT License](LICENSE).
@@ -817,55 +774,6 @@ app.py
 
 #### Port already in use
 - Change `APP_PORT` in `.env` to another port
-
-### Version History
-
-#### v1.5.1 (December 5, 2025) - Stability Fix
-- **Bug Fixes**:
-  - Enhanced Modbus thread startup logging for better diagnostics
-  - Improved error messages when virtual environment not activated
-  - Added connection status indicators to terminal output
-
-#### v1.5.0 (December 5, 2025) - Performance & Architecture
-- **Database Optimizations**:
-  - Table-per-day partitioning (measurements_YYYYMMDD)
-  - WAL mode for concurrent read/write performance
-  - Integer epoch timestamps (50% space reduction)
-  - Batch inserts: 30-measurement buffer (97% transaction reduction)
-  - UNION ALL queries over relevant tables
-  - Instant cleanup via DROP TABLE
-  - Connection pooling in Modbus thread
-- **Code Modularization**:
-  - Split 1225-line app.py into 5 focused modules
-  - database.py: 190 lines (partitioning, WAL, queries)
-  - modbus_reader.py: 185 lines (RTU communication, buffering)
-  - psychrometric.py: 317 lines (Mollier diagrams)
-  - callbacks.py: 636 lines (7 Dash callbacks)
-  - app.py: 45 lines (clean entry point)
-- **Performance Results**:
-  - 10-100× faster write performance
-  - 50% storage space reduction
-  - Sub-millisecond cleanup operations
-  - Linear scaling for multi-year operation
-  - Queries only scan relevant day-tables
-- **Testing**: All 15 automated tests passing
-
-#### v1.1.0 (December 4, 2025) - Features
-- Humidex calculation (Environment Canada standard)
-- Psychrometric chart (Mollier diagram)
-- Historical data replay with modal interface
-- 11 preset buttons + custom date/time picker
-- Live slider updates
-- Automated test suite (15 tests)
-- Improved UX and bug fixes
-
-#### v1.0.0 (Initial Release)
-- Real-time monitoring with live graphs
-- SQLite database with persistent storage
-- Multi-language support (NL/EN)
-- Temperature, humidity, dewpoint, absolute humidity measurements
-- Configurable data retention
-- Professional dashboard UI
 
 ### License
 
