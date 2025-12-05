@@ -39,30 +39,29 @@ def register_callbacks(app):
     )
     def update_language(lang):
         """Update alle labels op basis van geselecteerde taal"""
-        print(f"🌐 Language changed to: {lang}")  # Debug
-        if lang is None or lang not in TRANSLATIONS:
+        try:
+            print(f"🌐 Language changed to: {lang}")  # Debug
+            if lang is None or lang not in TRANSLATIONS:
+                lang = 'en'
+                print(f"⚠️ Invalid language, defaulting to: {lang}")
+            t = TRANSLATIONS[lang]
+        except Exception as e:
+            print(f"❌ Error in update_language: {e}")
+            import traceback
+            traceback.print_exc()
+            # Fallback to English
             lang = 'en'
-            print(f"⚠️ Invalid language, defaulting to: {lang}")
-        t = TRANSLATIONS[lang]
+            t = TRANSLATIONS[lang]
         
-        # Tooltip content met vertalingen
-        tooltip_content = [
-            t['score_explanation'] + ":",
-            html.Br(),
-            f"0 = {t['comfort_0']}",
-            html.Br(),
-            f"1 = {t['comfort_1']}",
-            html.Br(),
-            f"2 = {t['comfort_2']}",
-            html.Br(),
-            f"3 = {t['comfort_3']}",
-            html.Br(),
-            f"4 = {t['comfort_4']}",
-            html.Br(),
-            f"5 = {t['comfort_5']}",
-            html.Br(),
-            f"6 = {t['comfort_6']}"
-        ]
+        # Tooltip content met vertalingen (multiline string voor dcc.Tooltip)
+        tooltip_content = f"""{t['score_explanation']}:
+0 = {t['comfort_0']}
+1 = {t['comfort_1']}
+2 = {t['comfort_2']}
+3 = {t['comfort_3']}
+4 = {t['comfort_4']}
+5 = {t['comfort_5']}
+6 = {t['comfort_6']}"""
         
         # Dropdown opties met vertalingen
         dropdown_options = [
