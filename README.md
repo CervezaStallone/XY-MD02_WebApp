@@ -25,7 +25,7 @@ Een professionele real-time klimaatmonitoring dashboard applicatie voor de XY-MD
 - **Historische data replay**: Tijdreizen door data met preset knoppen (5min-1maand) of custom datum/tijd selectie
 - **Interactieve slider**: Live updates tijdens slepen voor vloeiende historische data navigatie
 - **Wetenschappelijke analyse**: Humidex formule volgens Environment Canada standaard met August-Roche-Magnus vergelijking
-- **Meertalig**: Nederlands en Engels, eenvoudig uitbreidbaar
+- **Meertalig**: 5 talen volledig ondersteund (Nederlands, Engels, Duits, Frans, Spaans)
 - **Professionele UI**: Modern dashboard met gradient header en card-based layout
 - **Zoom behoud**: Inzoomen op grafieken blijft behouden tijdens live updates
 - **Robuust**: Uitgebreide input validatie en error handling
@@ -464,7 +464,7 @@ A professional real-time climate monitoring dashboard application for the XY-MD0
 - **Historical data replay**: Time-travel through data with preset buttons or custom date/time selection
 - **Interactive slider**: Live updates while dragging for smooth historical navigation
 - **Scientific analysis**: Humidex formula according to Environment Canada standard
-- **Multilingual**: Dutch and English, easily expandable
+- **Multilingual**: 5 languages fully supported (Dutch, English, German, French, Spanish)
 - **Professional UI**: Modern dashboard with gradient header and card-based layout
 - **Zoom persistence**: Graph zoom stays preserved during live updates
 - **Robust**: Extensive input validation and error handling
