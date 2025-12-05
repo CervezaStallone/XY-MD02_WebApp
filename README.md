@@ -290,7 +290,7 @@ Klik op **"Kies bereik voor historische analyse"** om de modal te openen met 11 
 
 ### Database Architectuur
 
-#### Optimalisaties (v2.0.0)
+#### Optimalisaties
 
 De applicatie gebruikt geavanceerde SQLite optimalisaties voor multi-jaar continuous operation:
 
@@ -360,7 +360,7 @@ Alle 15 tests moeten slagen voordat nieuwe features worden gecommit.
 pip freeze > requirements.txt
 ```
 
-#### Code Structuur (Modular Architecture v2.0.0)
+#### Code Structuur (Modular Architecture)
 
 De codebase is gemodulariseerd voor betere onderhoudbaarheid:
 
@@ -671,7 +671,7 @@ The application offers advanced historical data analysis with two input methods:
 
 ### Database Architecture
 
-#### Optimizations (v2.0.0)
+#### Optimizations
 
 The application uses advanced SQLite optimizations for multi-year continuous operation:
 
@@ -741,7 +741,7 @@ All 15 tests must pass before committing new features.
 pip freeze > requirements.txt
 ```
 
-#### Code Structure (Modular Architecture v2.0.0)
+#### Code Structure (Modular Architecture)
 
 The codebase has been modularized for better maintainability:
 
