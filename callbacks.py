@@ -28,9 +28,9 @@ def register_callbacks(app):
          Output('label-dewpoint', 'children'),
          Output('label-abs-humidity', 'children'),
          Output('label-comfort', 'children'),
-         Output('label-comfort-score', 'children'),
-         Output('label-time-range', 'children'),
-         Output('label-data-count', 'children'),
+         Output('label-score', 'children'),
+         Output('label-time-period', 'children'),
+         Output('label-database', 'children'),
          Output('tooltip-content', 'children'),
          Output('time-range-dropdown', 'options'),
          Output('label-psychrometric-chart', 'children'),
@@ -39,6 +39,10 @@ def register_callbacks(app):
     )
     def update_language(lang):
         """Update alle labels op basis van geselecteerde taal"""
+        print(f"🌐 Language changed to: {lang}")  # Debug
+        if lang is None or lang not in TRANSLATIONS:
+            lang = 'en'
+            print(f"⚠️ Invalid language, defaulting to: {lang}")
         t = TRANSLATIONS[lang]
         
         # Tooltip content met vertalingen
