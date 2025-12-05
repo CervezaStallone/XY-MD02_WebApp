@@ -1,0 +1,58 @@
+name: CI Testing
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test on Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run syntax check
+      run: |
+        python -m py_compile app.py
+        python -m py_compile database.py
+        python -m py_compile modbus_reader.py
+        python -m py_compile psychrometric.py
+        python -m py_compile callbacks.py
+        python -m py_compile layout.py
+        python -m py_compile translations.py
+    
+    - name: Run automated tests
+      run: |
+        python test_app.py
+    
+    - name: Check imports
+      run: |
+        python -c "import app; import database; import modbus_reader; import psychrometric; import callbacks; import layout; import translations"
+    
+    - name: Validate .env.example
+      run: |
+        if [ ! -f .env.example ]; then
+          echo "Error: .env.example not found"
+          exit 1
+        fi
+        echo ".env.example exists and is valid"

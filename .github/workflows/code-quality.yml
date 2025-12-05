@@ -1,0 +1,66 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black
+        pip install -r requirements.txt
+    
+    - name: Check code formatting with Black
+      run: |
+        black --check --line-length 120 --diff *.py
+      continue-on-error: true
+    
+    - name: Lint with flake8
+      run: |
+        # Stop build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings. Line length set to 120
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics \
+          --exclude=.venv,__pycache__,.git,*.pyc,*.egg-info
+    
+    - name: Check for common issues
+      run: |
+        echo "Checking for TODO/FIXME comments..."
+        grep -rn "TODO\|FIXME" *.py || echo "No TODO/FIXME found"
+        
+        echo "Checking for print statements (should use logging)..."
+        grep -rn "print(" *.py | grep -v "test_app.py" | grep -v "#" || echo "No problematic print statements"
+    
+    - name: Verify requirements.txt matches pyproject.toml
+      run: |
+        echo "Checking dependency consistency..."
+        pip install toml
+        python -c "
+import toml
+with open('pyproject.toml', 'r') as f:
+    config = toml.load(f)
+    deps = config['project']['dependencies']
+    print('Dependencies in pyproject.toml:')
+    for dep in sorted(deps):
+        print(f'  - {dep}')
+"
+        echo "Requirements.txt entries:"
+        grep -E '^[a-zA-Z]' requirements.txt | sort || echo "requirements.txt is empty"

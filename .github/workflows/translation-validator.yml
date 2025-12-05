@@ -1,0 +1,158 @@
+name: Translation Validator
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'translations.py'
+      - 'layout.py'
+      - 'callbacks.py'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'translations.py'
+      - 'layout.py'
+      - 'callbacks.py'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate Translations
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Validate translation completeness
+      run: |
+        python - << 'EOF'
+        import sys
+        from translations import TRANSLATIONS, LANGUAGE_NAMES
+        
+        print("=" * 60)
+        print("TRANSLATION VALIDATION REPORT")
+        print("=" * 60)
+        
+        # Check all languages exist
+        print(f"\n✓ Found {len(LANGUAGE_NAMES)} languages: {', '.join(LANGUAGE_NAMES.keys())}")
+        
+        # Get all translation keys from first language
+        reference_lang = 'nl'
+        reference_keys = set(TRANSLATIONS[reference_lang].keys())
+        print(f"\n✓ Reference language '{reference_lang}' has {len(reference_keys)} keys")
+        
+        # Validate each language
+        errors = []
+        warnings = []
+        
+        for lang_code, lang_name in LANGUAGE_NAMES.items():
+            if lang_code not in TRANSLATIONS:
+                errors.append(f"Language '{lang_code}' defined in LANGUAGE_NAMES but missing in TRANSLATIONS")
+                continue
+            
+            lang_keys = set(TRANSLATIONS[lang_code].keys())
+            
+            # Check for missing keys
+            missing = reference_keys - lang_keys
+            if missing:
+                errors.append(f"Language '{lang_code}' missing {len(missing)} keys: {sorted(missing)}")
+            
+            # Check for extra keys
+            extra = lang_keys - reference_keys
+            if extra:
+                warnings.append(f"Language '{lang_code}' has {len(extra)} extra keys: {sorted(extra)}")
+            
+            # Check for empty translations
+            empty = [k for k, v in TRANSLATIONS[lang_code].items() if not v or not str(v).strip()]
+            if empty:
+                errors.append(f"Language '{lang_code}' has {len(empty)} empty translations: {sorted(empty)}")
+            
+            if not missing and not extra and not empty:
+                print(f"  ✓ {lang_code.upper()}: {len(lang_keys)} keys - Complete")
+            else:
+                print(f"  ✗ {lang_code.upper()}: {len(lang_keys)} keys - Issues found")
+        
+        # Check for duplicate keys
+        for lang_code in LANGUAGE_NAMES.keys():
+            keys_list = list(TRANSLATIONS[lang_code].keys())
+            if len(keys_list) != len(set(keys_list)):
+                errors.append(f"Language '{lang_code}' has duplicate keys")
+        
+        # Print warnings
+        if warnings:
+            print(f"\n⚠ WARNINGS ({len(warnings)}):")
+            for warning in warnings:
+                print(f"  - {warning}")
+        
+        # Print errors
+        if errors:
+            print(f"\n❌ ERRORS ({len(errors)}):")
+            for error in errors:
+                print(f"  - {error}")
+            print("\n" + "=" * 60)
+            sys.exit(1)
+        
+        print(f"\n✅ All translations are complete and consistent!")
+        print("=" * 60)
+        EOF
+    
+    - name: Check translation key usage
+      run: |
+        python - << 'EOF'
+        import sys
+        import re
+        from translations import TRANSLATIONS
+        
+        print("\n" + "=" * 60)
+        print("TRANSLATION KEY USAGE VALIDATION")
+        print("=" * 60)
+        
+        # Get all translation keys
+        all_keys = set(TRANSLATIONS['nl'].keys())
+        print(f"\n✓ Total translation keys defined: {len(all_keys)}")
+        
+        # Files to check for usage
+        files_to_check = ['callbacks.py', 'layout.py', 'psychrometric.py']
+        
+        used_keys = set()
+        
+        for filename in files_to_check:
+            try:
+                with open(filename, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    # Find all t['key'] or t["key"] patterns
+                    matches = re.findall(r"t\[(['\"])(\w+)\1\]", content)
+                    file_keys = {match[1] for match in matches}
+                    used_keys.update(file_keys)
+                    print(f"  - {filename}: {len(file_keys)} keys used")
+            except FileNotFoundError:
+                print(f"  ⚠ {filename} not found")
+        
+        print(f"\n✓ Total unique keys used in code: {len(used_keys)}")
+        
+        # Find unused keys
+        unused = all_keys - used_keys
+        if unused:
+            print(f"\n⚠ Found {len(unused)} potentially unused translation keys:")
+            for key in sorted(unused):
+                print(f"  - {key}")
+        
+        # Find missing keys (used but not defined)
+        missing = used_keys - all_keys
+        if missing:
+            print(f"\n❌ ERROR: Found {len(missing)} keys used in code but not defined in translations:")
+            for key in sorted(missing):
+                print(f"  - {key}")
+            sys.exit(1)
+        
+        if not unused:
+            print(f"\n✅ All translation keys are used!")
+        
+        print("=" * 60)
+        EOF
