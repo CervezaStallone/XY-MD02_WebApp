@@ -27,11 +27,6 @@ updates:
     # Allow specific major version updates
     allow:
       - dependency-type: "all"
-    # Ignore specific dependencies if needed
-    ignore:
-      # Example: uncomment to ignore specific versions
-      # - dependency-name: "dash"
-      #   versions: ["2.x"]
 
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
