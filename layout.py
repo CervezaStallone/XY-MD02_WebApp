@@ -1,8 +1,14 @@
 # layout.py
 # HTML Layout en styling voor de Modbus Climate Monitor applicatie
 
+import os
 from dash import dcc, html
+from dotenv import load_dotenv
 from translations import LANGUAGE_NAMES, TRANSLATIONS
+
+# Laad environment variabelen
+load_dotenv()
+DEFAULT_LANGUAGE = os.getenv('DEFAULT_LANGUAGE', 'EN').lower()
 
 # Custom HTML template met CSS
 HTML_TEMPLATE = '''
@@ -67,8 +73,8 @@ HTML_TEMPLATE = '''
 def create_layout():
     """Creëert de hoofdlayout van de applicatie"""
     return html.Div([
-        # Store voor geselecteerde taal
-        dcc.Store(id='selected-language', data='nl'),
+        # Store voor geselecteerde taal (gebruik DEFAULT_LANGUAGE uit .env)
+        dcc.Store(id='selected-language', data=DEFAULT_LANGUAGE),
         # Store voor grafiek zoom/relayout state
         dcc.Store(id='graph-relayout-data', data={}),
         
@@ -79,7 +85,7 @@ def create_layout():
                     dcc.Dropdown(
                         id='language-selector',
                         options=[{'label': LANGUAGE_NAMES[lang], 'value': lang} for lang in LANGUAGE_NAMES.keys()],
-                        value='nl',
+                        value=DEFAULT_LANGUAGE,
                         clearable=False,
                         style={
                             'width': '80px',
@@ -208,21 +214,21 @@ def create_layout():
                         html.Span(id='comfort-score', style={'fontSize': '20px', 'fontWeight': 'bold', 'color': '#2c3e50'})
                     ]),
                     html.Div(id='tooltip-content', children=[
-                        TRANSLATIONS['nl']['score_explanation'] + ":",
+                        TRANSLATIONS[DEFAULT_LANGUAGE]['score_explanation'] + ":",
                         html.Br(),
-                        f"0 = {TRANSLATIONS['nl']['comfort_0']}",
+                        f"0 = {TRANSLATIONS[DEFAULT_LANGUAGE]['comfort_0']}",
                         html.Br(),
-                        f"1 = {TRANSLATIONS['nl']['comfort_1']}",
+                        f"1 = {TRANSLATIONS[DEFAULT_LANGUAGE]['comfort_1']}",
                         html.Br(),
-                        f"2 = {TRANSLATIONS['nl']['comfort_2']}",
+                        f"2 = {TRANSLATIONS[DEFAULT_LANGUAGE]['comfort_2']}",
                         html.Br(),
-                        f"3 = {TRANSLATIONS['nl']['comfort_3']}",
+                        f"3 = {TRANSLATIONS[DEFAULT_LANGUAGE]['comfort_3']}",
                         html.Br(),
-                        f"4 = {TRANSLATIONS['nl']['comfort_4']}",
+                        f"4 = {TRANSLATIONS[DEFAULT_LANGUAGE]['comfort_4']}",
                         html.Br(),
-                        f"5 = {TRANSLATIONS['nl']['comfort_5']}",
+                        f"5 = {TRANSLATIONS[DEFAULT_LANGUAGE]['comfort_5']}",
                         html.Br(),
-                        f"6 = {TRANSLATIONS['nl']['comfort_6']}"
+                        f"6 = {TRANSLATIONS[DEFAULT_LANGUAGE]['comfort_6']}"
                     ], className='tooltip-text')
                 ], className='tooltip-container', style={
                     'background': 'white',
