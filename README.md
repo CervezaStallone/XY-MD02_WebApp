@@ -59,7 +59,7 @@ Een professionele real-time klimaatmonitoring dashboard applicatie voor de XY-MD
 1. **Clone de repository**
 ```bash
 git clone <repository-url>
-cd "Modbus Graph"
+cd XY-MD02_WebApp
 ```
 
 2. **Maak een virtual environment**
@@ -125,7 +125,7 @@ De applicatie is nu beschikbaar op: `http://127.0.0.1:8050/`
 ### Projectstructuur
 
 ```
-Modbus Graph/
+XY-MD02_WebApp/
 ├── app.py                    # Main entry point (45 regels)
 ├── database.py               # Database operaties, partitioning, WAL mode
 ├── modbus_reader.py          # Modbus RTU communicatie, batch buffering
@@ -455,7 +455,7 @@ A professional real-time climate monitoring dashboard application for the XY-MD0
 1. **Clone the repository**
 ```bash
 git clone <repository-url>
-cd "Modbus Graph"
+cd XY-MD02_WebApp
 ```
 
 2. **Create a virtual environment**
@@ -521,7 +521,7 @@ The application is now available at: `http://127.0.0.1:8050/`
 ### Project Structure
 
 ```
-Modbus Graph/
+XY-MD02_WebApp/
 ├── app.py                    # Main entry point (45 lines)
 ├── database.py               # Database operations, partitioning, WAL mode
 ├── modbus_reader.py          # Modbus RTU communication, batch buffering
